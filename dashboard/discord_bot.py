@@ -223,10 +223,14 @@ async def map_cmd(interaction: discord.Interaction):
     try:
         img_path = build_snapshot()
     except Exception as e:
-        await interaction.followup.send(f"🗺️ Live Map: {MAP_URL}\n(không ghép được ảnh preview: {e})")
+        await interaction.followup.send(
+            f"🗺️ Live Map: {MAP_URL}\n"
+            f"-# Nếu mở web thấy thiếu/cũ, thử tab ẩn danh — trình duyệt hay giữ cache ảnh bản đồ cũ dù đã bấm Ctrl+F5.\n"
+            f"(không ghép được ảnh preview: {e})"
+        )
         return
     await interaction.followup.send(
-        content=f"🗺️ Live Map: {MAP_URL}",
+        content=f"🗺️ Live Map: {MAP_URL}\n-# Nếu mở web thấy thiếu/cũ, thử tab ẩn danh — trình duyệt hay giữ cache ảnh bản đồ cũ dù đã bấm Ctrl+F5.",
         file=discord.File(img_path, filename="map.png"),
     )
 
