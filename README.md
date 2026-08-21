@@ -58,10 +58,15 @@ và gửi lệnh console qua `screen`.
   Luôn bật lại `save-on` kể cả khi có lỗi giữa chừng (dùng `trap`).
 - `systemd/mc-world-backup.{service,timer}` — chạy script trên lúc 5h sáng
   hàng ngày.
-- Cấu hình `rclone` remote `gdrive:` (OAuth token) phải làm thủ công 1 lần —
-  không có trong repo, xem `secrets.txt` local hoặc chạy lại
-  `rclone authorize "drive"` trên máy có trình duyệt rồi
-  `rclone config create gdrive drive scope=drive token='<json token>'` trên VPS.
+- Cấu hình `rclone` remote `gdrive:` dùng OAuth client_id riêng (không dùng
+  client_id dùng chung mặc định của rclone — client_id đó bị Google khai tử
+  trong 2026) và scope `drive.file` (chỉ truy cập file/folder do chính app
+  tạo ra, không đụng tới phần còn lại trong Drive của bạn — an toàn hơn scope
+  `drive` mặc định). Việc này phải làm thủ công 1 lần, không có trong repo —
+  xem `secrets.txt` local để biết đầy đủ Client ID/Secret/token, hoặc làm lại
+  từ đầu theo hướng dẫn: https://rclone.org/drive/#making-your-own-client-id
+  (nhớ dùng `--drive-scope=drive.file` khi chạy `rclone authorize`, và Publish
+  app trên OAuth consent screen để tránh token hết hạn sau 7 ngày).
 
 ### Đồng hồ hệ thống (quan trọng)
 
