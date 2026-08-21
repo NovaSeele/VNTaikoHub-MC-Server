@@ -373,6 +373,44 @@ def get_all_players() -> list:
     return result
 
 
+def get_player_biomes(name: str) -> dict:
+    """Danh sách biome người chơi đã từng ghé qua. Lấy thẳng từ dữ liệu
+    advancement "Adventuring Time" mà chính Minecraft đã tự track sẵn cho
+    mỗi người chơi (mỗi biome hoàn thành 1 lần đầu tiên có timestamp riêng)
+    — không cần tự cài đặt cơ chế theo dõi nào thêm."""
+    try:
+        with open(f"{MC_DIR}/usercache.json") as f:
+            cache = json.load(f)
+    except Exception:
+        cache = []
+    pid = None
+    for entry in cache:
+        if entry.get("name") == name:
+            pid = entry.get("uuid")
+            break
+    if not pid:
+        return {"error": f"Không tìm thấy người chơi '{name}'"}
+
+    adv_path = f"{MC_DIR}/world/players/advancements/{pid}.json"
+    if not os.path.exists(adv_path):
+        return {"error": f"{name} chưa có dữ liệu advancement (chưa từng vào server?)"}
+
+    try:
+        with open(adv_path) as f:
+            adv = json.load(f)
+    except Exception as e:
+        return {"error": f"Không đọc được file advancement: {e}"}
+
+    entry = adv.get("minecraft:adventure/adventuring_time", {})
+    criteria = entry.get("criteria", {})
+    biomes = [
+        {"biome": key.split(":", 1)[-1], "first_visited": ts}
+        for key, ts in criteria.items()
+    ]
+    biomes.sort(key=lambda b: b["first_visited"])
+    return {"biomes": biomes, "completed": bool(entry.get("done", False))}
+
+
 def _send_and_capture(command: str, wait: float) -> list:
     try:
         start_size = os.path.getsize(LOG_PATH)

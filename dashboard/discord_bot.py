@@ -29,6 +29,7 @@ from app import (
     get_all_players,
     get_current_jar,
     get_latest_stable,
+    get_player_biomes,
     get_system_stats,
     perform_update,
     query_status,
@@ -88,6 +89,27 @@ async def players_cmd(interaction: discord.Interaction):
     ]
     text = "\n".join(lines)
     embed = discord.Embed(title=f"Người chơi ({len(players)})", description=text[:4000], color=discord.Color.blue())
+    await interaction.followup.send(embed=embed)
+
+
+@bot.tree.command(name="biomes", description="Danh sách biome người chơi đã từng ghé qua")
+@app_commands.describe(player="Tên người chơi (đúng hoa/thường)")
+async def biomes_cmd(interaction: discord.Interaction, player: str):
+    await interaction.response.defer()
+    result = get_player_biomes(player)
+    if "error" in result:
+        await interaction.followup.send(f"❌ {result['error']}")
+        return
+    biomes = result["biomes"]
+    if not biomes:
+        await interaction.followup.send(f"**{player}** chưa ghé qua biome nào (chưa đi đâu xa?).")
+        return
+    lines = [f"{b['biome']} — {b['first_visited'][:10]}" for b in biomes]
+    text = "\n".join(lines)
+    title = f"Biome {player} đã ghé qua ({len(biomes)})"
+    if result["completed"]:
+        title += " ✅ Adventuring Time hoàn thành"
+    embed = discord.Embed(title=title, description=text[:4000], color=discord.Color.green())
     await interaction.followup.send(embed=embed)
 
 
@@ -201,10 +223,10 @@ async def map_cmd(interaction: discord.Interaction):
     try:
         img_path = build_snapshot()
     except Exception as e:
-        await interaction.followup.send(f"🗺️ Bản đồ trực tiếp: {MAP_URL}\n(không ghép được ảnh preview: {e})")
+        await interaction.followup.send(f"🗺️ Live Map: {MAP_URL}\n(không ghép được ảnh preview: {e})")
         return
     await interaction.followup.send(
-        content=f"🗺️ Bản đồ trực tiếp (zoom/pan được): {MAP_URL}",
+        content=f"🗺️ Live Map: {MAP_URL}",
         file=discord.File(img_path, filename="map.png"),
     )
 
