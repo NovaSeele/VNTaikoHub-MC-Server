@@ -12,10 +12,8 @@ Config via environment variables (set in the systemd unit, not hardcoded):
   DISCORD_BOT_TOKEN — bot token from the Discord Developer Portal
   DISCORD_ADMIN_ID  — Discord user ID allowed to run state-changing commands
 """
-import asyncio
 import os
 import sys
-import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -36,11 +34,10 @@ from app import (
     query_status,
     run_console_command,
 )
-from map_render import OUTPUT_PATH as MAP_PATH
-from map_render import get_cached_or_render
 
 BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "")
 ADMIN_USER_ID = int(os.environ.get("DISCORD_ADMIN_ID", "0") or "0")
+MAP_URL = "https://vntaikohub-map.novaseele.com/"
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!mc-unused-", intents=intents)
@@ -197,35 +194,9 @@ async def update_cmd(interaction: discord.Interaction):
         await interaction.followup.send(f"❌ {result.get('error')}")
 
 
-_map_render_lock = asyncio.Lock()
-
-
-@bot.tree.command(name="map", description="Xem bản đồ tổng quan Overworld (ảnh, cập nhật định kỳ)")
-@app_commands.describe(refresh="Render lại bản đồ mới nhất — mất khoảng 30-45 phút")
-async def map_cmd(interaction: discord.Interaction, refresh: bool = False):
-    if refresh:
-        if _map_render_lock.locked():
-            await interaction.response.send_message("⏳ Đang có 1 lượt render khác chạy rồi, đợi xong rồi thử lại.", ephemeral=True)
-            return
-        await interaction.response.send_message("🗺️ Đang render lại bản đồ, mất khoảng 30-45 phút — dùng `/map` lại sau để xem bản mới.")
-
-        async def _render_locked():
-            async with _map_render_lock:
-                loop = asyncio.get_event_loop()
-                await loop.run_in_executor(None, get_cached_or_render, True)
-
-        asyncio.create_task(_render_locked())
-        return
-
-    await interaction.response.defer()
-    if not os.path.exists(MAP_PATH):
-        await interaction.followup.send("Chưa có bản đồ nào được render. Dùng `/map refresh:true` để tạo lần đầu.")
-        return
-    updated_str = time.strftime("%d/%m/%Y %H:%M", time.localtime(os.path.getmtime(MAP_PATH)))
-    await interaction.followup.send(
-        content=f"🗺️ Bản đồ Overworld (cập nhật lúc {updated_str}):",
-        file=discord.File(MAP_PATH),
-    )
+@bot.tree.command(name="map", description="Xem bản đồ trực tiếp Overworld (web, cập nhật liên tục)")
+async def map_cmd(interaction: discord.Interaction):
+    await interaction.response.send_message(f"🗺️ Bản đồ trực tiếp: {MAP_URL}")
 
 
 if __name__ == "__main__":

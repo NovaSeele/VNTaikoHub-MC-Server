@@ -32,6 +32,7 @@ SESSION_MAX_AGE = 30 * 24 * 3600  # 30 days
 MAX_LOGIN_ATTEMPTS = 5
 LOGIN_LOCKOUT_SECONDS = 300
 FILL_API = "https://fill.papermc.io/v3/projects/paper"
+MAP_URL = "https://vntaikohub-map.novaseele.com/"
 
 
 def _write_varint(value: int) -> bytes:
@@ -366,6 +367,7 @@ def get_all_players() -> list:
             "gamemode": gamemode,
             "op_level": ops.get(name, 0),
             "ip": ips.get(name),
+            "online": name in online_names,
         })
     result.sort(key=lambda p: p["name"].lower())
     return result
@@ -1351,6 +1353,10 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
         elif self.path == "/api/auth-status":
             self._send_json({"logged_in": self._is_authed()})
+        elif self.path == "/api/map":
+            self.send_response(302)
+            self.send_header("Location", MAP_URL)
+            self.end_headers()
         elif self.path == "/" or self.path == "/index.html":
             body = DASHBOARD_HTML.encode("utf-8")
             self.send_response(200)

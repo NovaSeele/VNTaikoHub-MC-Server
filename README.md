@@ -33,20 +33,16 @@ và gửi lệnh console qua `screen`.
 - `dashboard/discord_bot.py` — bot Discord (slash command), import thẳng các
   hàm xử lý từ `app.py` nên hành vi giống hệt web dashboard. Lệnh xem
   (`/status`, `/players`, `/version`, `/map`) mở cho mọi người; lệnh thay đổi
-  (`/gamemode`, `/oplevel`, `/console`, `/update`, `/map refresh:true`) chỉ 1
-  Discord user ID (`DISCORD_ADMIN_ID`) dùng được. Cần `pip install discord.py`.
-- `dashboard/map_render.py` — render ảnh bản đồ top-down Overworld (1 pixel/
-  chunk) từ file `.mca` trong world save. Đọc trực tiếp path
-  `world/dimensions/minecraft/overworld/region/` (Minecraft 26.x đổi cấu
-  trúc thư mục, không còn `world/region/` kiểu cũ). Mất khoảng 15-30 phút
-  cho world hiện tại (300 region file) nên chạy định kỳ qua timer, không
-  render theo từng request. Cần `pip install anvil-parser2 Pillow`.
+  (`/gamemode`, `/oplevel`, `/console`, `/update`) chỉ 1 Discord user ID
+  (`DISCORD_ADMIN_ID`) dùng được. Cần `pip install discord.py`.
 - `backup/world_backup.sh` — nén + upload world lên Google Drive.
 - `systemd/*.service`, `systemd/*.timer` — `minecraft`, `mc-dashboard`,
   `mc-proxy-relay`, `mc-discord-bot`, `mc-world-backup` (+ timer),
-  `htpdate-sync` (+ timer), `mc-map-render` (+ timer, mỗi 12h).
+  `htpdate-sync` (+ timer).
 - `nginx/stream-mc.conf` — đoạn cấu hình `stream {}` cần dán vào
   `/etc/nginx/nginx.conf` (top-level, không đặt được trong sites-available).
+- `nginx/vntaikohub-map.conf` — vhost riêng cho web viewer plugin squaremap
+  (xem mục "Bản đồ live" bên dưới).
 - `scripts/run.sh` — script khởi động Paper (Aikar's flags).
 
 ## Triển khai trên VPS mới (tóm tắt)
@@ -65,11 +61,10 @@ và gửi lệnh console qua `screen`.
 6. Tạo `/etc/mc-dashboard-auth.env` cho đăng nhập admin dashboard (xem
    hướng dẫn hash mật khẩu trong `dashboard/app.py`, hàm `_load_auth_config`).
 7. Cài `rclone`, cấu hình remote `gdrive:` (xem phần Backup bên dưới).
-8. (Tuỳ chọn) Bot Discord: `pip install discord.py anvil-parser2 Pillow`, tạo
+8. (Tuỳ chọn) Bot Discord: `pip install discord.py`, tạo
    `/etc/mc-discord-bot.env` chứa `DISCORD_BOT_TOKEN=...` và
    `DISCORD_ADMIN_ID=...`, rồi `systemctl enable --now mc-discord-bot`.
-   Bật thêm `systemctl enable --now mc-map-render.timer` để tự render bản đồ
-   định kỳ (chạy tay lần đầu: `python3 /opt/mc-dashboard/map_render.py`).
+9. (Tuỳ chọn) Bản đồ live: xem mục "Bản đồ live (squaremap)" bên dưới.
 
 ## Backup world tự động (Google Drive)
 
@@ -85,6 +80,39 @@ và gửi lệnh console qua `screen`.
   repo — xem `secrets.txt` local, hoặc làm lại theo
   https://rclone.org/drive/#making-your-own-client-id (dùng
   `--drive-scope=drive.file`, nhớ Publish app để tránh token hết hạn 7 ngày).
+
+## Bản đồ live (squaremap)
+
+Ban đầu tự viết script render ảnh top-down từ file `.mca` (1 pixel/chunk,
+chạy định kỳ vì mất 15-30 phút/lần) — bỏ hẳn sau khi so sánh thực tế với
+plugin [squaremap](https://github.com/jpenilla/squaremap): plugin render
+chi tiết hơn nhiều (đúng màu/texture như bản đồ vanilla, không bỏ sót build
+trên cao vì script tự viết chỉ lấy mẫu 1 điểm/chunk), nhanh hơn (~7 phút
+full-render 300 region so với ~16 phút), và **RAM gần như không đổi** khi đo
+thực tế trên VPS đang chạy (baseline ~3.6GB có/không có plugin, kể cả lúc
+đang full-render) — không đáng lo như dự đoán ban đầu về việc chạy thêm 1
+plugin nặng bên trong JVM của Paper.
+
+- Cài: tải `squaremap-paper-mc<version>-<ver>.jar` đúng bản Minecraft đang
+  chạy từ https://github.com/jpenilla/squaremap/releases (thư mục
+  `dimensions/minecraft/<dim>/` mới của Minecraft 26.x không phải vấn đề —
+  squaremap tự nhận diện qua Bukkit World API, không đọc thẳng file).
+- Bỏ vào `/home/minecraft/plugins/`, restart `minecraft.service`.
+- **Bắt buộc** sửa `plugins/squaremap/config.yml`: đổi
+  `internal-webserver.bind` từ `0.0.0.0` thành `127.0.0.1` — mặc định
+  squaremap tự mở port ra ngoài trực tiếp (8080), không đi qua HTTPS/nginx
+  disguise của server này. Áp dụng bằng lệnh console `/squaremap reload`
+  (không cần restart lại).
+- `nginx/vntaikohub-map.conf` — vhost riêng proxy `127.0.0.1:8080` ra
+  `https://vntaikohub-map.novaseele.com` (không gắn subpath vào dashboard
+  vì asset JS/CSS của squaremap dùng đường dẫn tuyệt đối từ root).
+- Render toàn bộ world lần đầu: `/squaremap fullrender minecraft:overworld`
+  trong console (lưu ý dùng đúng dạng `minecraft:overworld`, không phải
+  `world` hay `minecraft_overworld` dù đó là tên thư mục data của nó).
+- Sau lần render đầu, squaremap tự cập nhật khi chunk thay đổi — không cần
+  timer định kỳ như cách cũ.
+- Discord bot `/map` chỉ trả về link `https://vntaikohub-map.novaseele.com/`
+  — không giới hạn admin vì đây là hành động chỉ đọc, không đổi dữ liệu gì.
 
 ## Đồng hồ hệ thống
 

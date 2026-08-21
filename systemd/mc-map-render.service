@@ -1,8 +1,0 @@
-[Unit]
-Description=Render overview map of the Overworld
-After=minecraft.service
-
-[Service]
-Type=oneshot
-WorkingDirectory=/opt/mc-dashboard
-ExecStart=/usr/bin/python3 /opt/mc-dashboard/map_render.py
