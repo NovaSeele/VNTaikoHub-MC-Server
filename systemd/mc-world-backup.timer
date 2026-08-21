@@ -1,0 +1,10 @@
+[Unit]
+Description=Chay backup world Minecraft luc 5h sang hang ngay
+
+[Timer]
+OnCalendar=*-*-* 05:00:00
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

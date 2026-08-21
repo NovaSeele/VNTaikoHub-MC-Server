@@ -1,0 +1,6 @@
+[Unit]
+Description=Sync system clock via HTTPS (UDP/NTP is blocked by hosting provider)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/htpdate -s -t www.google.com

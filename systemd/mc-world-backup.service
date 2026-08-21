@@ -1,0 +1,8 @@
+[Unit]
+Description=Backup Minecraft world len Google Drive
+After=minecraft.service
+Wants=minecraft.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/mc-dashboard/backup/world_backup.sh

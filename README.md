@@ -50,6 +50,28 @@ và gửi lệnh console qua `screen`.
 6. Tạo `/etc/mc-dashboard-auth.env` cho đăng nhập admin dashboard (xem hướng
    dẫn hash mật khẩu trong `dashboard/app.py`, hàm `_load_auth_config`).
 
+## Backup world tự động (Google Drive)
+
+- `backup/world_backup.sh` — tạm dừng ghi đĩa (`save-off`/`save-all flush`),
+  nén `world/` thành `.tar.gz`, đẩy lên Google Drive qua `rclone` (remote
+  `gdrive:MinecraftBackups`), tự xoá bản backup cũ hơn 14 ngày trên Drive.
+  Luôn bật lại `save-on` kể cả khi có lỗi giữa chừng (dùng `trap`).
+- `systemd/mc-world-backup.{service,timer}` — chạy script trên lúc 5h sáng
+  hàng ngày.
+- Cấu hình `rclone` remote `gdrive:` (OAuth token) phải làm thủ công 1 lần —
+  không có trong repo, xem `secrets.txt` local hoặc chạy lại
+  `rclone authorize "drive"` trên máy có trình duyệt rồi
+  `rclone config create gdrive drive scope=drive token='<json token>'` trên VPS.
+
+### Đồng hồ hệ thống (quan trọng)
+
+VPS này chặn UDP nên NTP chuẩn (`systemd-timesyncd`, dùng UDP 123) **không
+hoạt động được** — đồng hồ có thể trôi lệch hàng chục phút mà không tự sửa,
+ảnh hưởng tới giờ chạy backup/timer. Đã tắt `systemd-timesyncd` và thay bằng
+`htpdate` (đồng bộ giờ qua HTTPS/TCP):
+- `systemd/htpdate-sync.{service,timer}` — chạy `htpdate -s` lúc 4h45 sáng
+  hàng ngày (trước giờ backup 15 phút) để đảm bảo giờ chính xác.
+
 ## KHÔNG có trong repo này (cố ý)
 
 - World save (`world/`) — dữ liệu binary lớn, không hợp với git. Backup riêng
