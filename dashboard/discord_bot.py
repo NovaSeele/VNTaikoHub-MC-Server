@@ -113,7 +113,7 @@ async def biomes_cmd(interaction: discord.Interaction, player: str):
     await interaction.followup.send(embed=embed)
 
 
-@bot.tree.command(name="gamemode", description="Đổi gamemode người chơi (chỉ admin)")
+@bot.tree.command(name="gamemode", description="Đổi gamemode người chơi")
 @app_commands.describe(player="Tên người chơi (đang online)", mode="Gamemode mới")
 @app_commands.choices(mode=[
     app_commands.Choice(name="survival", value="survival"),
@@ -132,7 +132,7 @@ async def gamemode_cmd(interaction: discord.Interaction, player: str, mode: app_
         await interaction.response.send_message(f"❌ {result.get('error')}", ephemeral=True)
 
 
-@bot.tree.command(name="oplevel", description="Đổi OP level người chơi (chỉ admin)")
+@bot.tree.command(name="oplevel", description="Đổi OP level người chơi")
 @app_commands.describe(player="Tên người chơi (đúng hoa/thường)", level="OP level (0 = xoá OP, 1-4)")
 async def oplevel_cmd(interaction: discord.Interaction, player: str, level: app_commands.Range[int, 0, 4]):
     if not is_admin(interaction):
@@ -167,7 +167,7 @@ class ConfirmDangerView(discord.ui.View):
         self.stop()
 
 
-@bot.tree.command(name="console", description="Chạy lệnh console Minecraft (chỉ admin)")
+@bot.tree.command(name="console", description="Chạy lệnh console Minecraft")
 @app_commands.describe(command="Lệnh console (không kèm dấu /), ví dụ: say hello")
 async def console_cmd(interaction: discord.Interaction, command: str):
     if not is_admin(interaction):
@@ -203,7 +203,7 @@ async def version_cmd(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed)
 
 
-@bot.tree.command(name="update", description="Cập nhật Paper lên bản mới nhất, tự restart server (chỉ admin)")
+@bot.tree.command(name="update", description="Cập nhật Paper lên bản mới nhất, tự restart server")
 async def update_cmd(interaction: discord.Interaction):
     if not is_admin(interaction):
         await interaction.response.send_message("❌ Bạn không có quyền dùng lệnh này.", ephemeral=True)
