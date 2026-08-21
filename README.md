@@ -30,9 +30,15 @@ và gửi lệnh console qua `screen`.
   kiểm tra/cập nhật phiên bản, đăng nhập admin.
 - `dashboard/relay.py` — relay PROXY-protocol giữa nginx và Paper, để dashboard
   biết được IP thật của người chơi dù đi qua nginx.
+- `dashboard/discord_bot.py` — bot Discord (slash command), import thẳng các
+  hàm xử lý từ `app.py` nên hành vi giống hệt web dashboard. Lệnh xem
+  (`/status`, `/players`, `/version`) mở cho mọi người; lệnh thay đổi
+  (`/gamemode`, `/oplevel`, `/console`, `/update`) chỉ 1 Discord user ID
+  (`DISCORD_ADMIN_ID`) dùng được. Cần `pip install discord.py`.
 - `backup/world_backup.sh` — nén + upload world lên Google Drive.
 - `systemd/*.service`, `systemd/*.timer` — `minecraft`, `mc-dashboard`,
-  `mc-proxy-relay`, `mc-world-backup` (+ timer), `htpdate-sync` (+ timer).
+  `mc-proxy-relay`, `mc-discord-bot`, `mc-world-backup` (+ timer),
+  `htpdate-sync` (+ timer).
 - `nginx/stream-mc.conf` — đoạn cấu hình `stream {}` cần dán vào
   `/etc/nginx/nginx.conf` (top-level, không đặt được trong sites-available).
 - `scripts/run.sh` — script khởi động Paper (Aikar's flags).
@@ -53,6 +59,9 @@ và gửi lệnh console qua `screen`.
 6. Tạo `/etc/mc-dashboard-auth.env` cho đăng nhập admin dashboard (xem
    hướng dẫn hash mật khẩu trong `dashboard/app.py`, hàm `_load_auth_config`).
 7. Cài `rclone`, cấu hình remote `gdrive:` (xem phần Backup bên dưới).
+8. (Tuỳ chọn) Bot Discord: `pip install discord.py`, tạo
+   `/etc/mc-discord-bot.env` chứa `DISCORD_BOT_TOKEN=...` và
+   `DISCORD_ADMIN_ID=...`, rồi `systemctl enable --now mc-discord-bot`.
 
 ## Backup world tự động (Google Drive)
 

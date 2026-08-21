@@ -1,0 +1,15 @@
+[Unit]
+Description=Discord bot for Minecraft server management
+After=network.target minecraft.service
+Wants=minecraft.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/mc-dashboard
+EnvironmentFile=/etc/mc-discord-bot.env
+ExecStart=/usr/bin/python3 /opt/mc-dashboard/discord_bot.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
