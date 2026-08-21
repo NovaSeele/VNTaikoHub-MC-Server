@@ -78,7 +78,7 @@ hoạt động được** — đồng hồ có thể trôi lệch hàng chục p
 `htpdate` (đồng bộ giờ qua HTTPS/TCP): `systemd/htpdate-sync.timer` chạy lúc
 4h45 sáng hàng ngày, trước giờ backup 15 phút.
 
-## KHÔNG có trong repo này (cố ý)
+## KHÔNG có trong repo này
 
 - World save (`world/`) — dữ liệu binary lớn, không hợp với git. Backup riêng
   bằng script tự động lên Google Drive.
