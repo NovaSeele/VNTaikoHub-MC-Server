@@ -1,0 +1,13 @@
+[Unit]
+Description=Minecraft status dashboard
+After=network.target minecraft.service
+Wants=minecraft.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/mc-dashboard/app.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

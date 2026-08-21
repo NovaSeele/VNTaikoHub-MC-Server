@@ -1,0 +1,16 @@
+[Unit]
+Description=Minecraft Paper Server
+After=network.target
+
+[Service]
+WorkingDirectory=/home/minecraft
+User=root
+Type=simple
+ExecStart=/usr/bin/screen -DmS minecraft /home/minecraft/run.sh
+ExecStop=/usr/bin/screen -p 0 -S minecraft -X eval 'stuff "stop\015"'
+TimeoutStopSec=60
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
