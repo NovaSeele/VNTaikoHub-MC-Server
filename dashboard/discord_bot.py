@@ -84,7 +84,10 @@ async def players_cmd(interaction: discord.Interaction):
     if not players:
         await interaction.followup.send("Chưa có người chơi nào.")
         return
-    lines = [f"**{p['name']}** — {p['gamemode'] or '?'}, OP level {p['op_level']}" for p in players]
+    lines = [
+        f"{'🟢' if p['online'] else '⚫'} **{p['name']}** — {p['gamemode'] or '?'}, OP level {p['op_level']}"
+        for p in players
+    ]
     text = "\n".join(lines)
     embed = discord.Embed(title=f"Người chơi ({len(players)})", description=text[:4000], color=discord.Color.blue())
     await interaction.followup.send(embed=embed)
@@ -195,13 +198,13 @@ async def update_cmd(interaction: discord.Interaction):
 
 
 @bot.tree.command(name="map", description="Xem bản đồ tổng quan Overworld (ảnh, cập nhật định kỳ)")
-@app_commands.describe(refresh="Render lại bản đồ mới nhất — mất khoảng 15 phút, chỉ admin")
+@app_commands.describe(refresh="Render lại bản đồ mới nhất — mất khoảng 30-45 phút, chỉ admin")
 async def map_cmd(interaction: discord.Interaction, refresh: bool = False):
     if refresh:
         if not is_admin(interaction):
-            await interaction.response.send_message("❌ Chỉ admin mới render lại được (mất khoảng 15 phút).", ephemeral=True)
+            await interaction.response.send_message("❌ Chỉ admin mới render lại được (mất khoảng 30-45 phút).", ephemeral=True)
             return
-        await interaction.response.send_message("🗺️ Đang render lại bản đồ, mất khoảng 15 phút — dùng `/map` lại sau để xem bản mới.")
+        await interaction.response.send_message("🗺️ Đang render lại bản đồ, mất khoảng 30-45 phút — dùng `/map` lại sau để xem bản mới.")
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, get_cached_or_render, True)
         return
