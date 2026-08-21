@@ -1,9 +1,8 @@
 # VNTaikoHub MC Server
 
-Hạ tầng + dashboard quản trị cho server Minecraft Paper của nhóm bạn, chạy
-trên 1 VPS dùng chung với các website khác, nguỵ trang qua port 443 (vì VPS
-chặn port 25565 mặc định, không cho mở game server chính thức, và không có
-UDP/IPv6 khả dụng).
+Hạ tầng + dashboard quản trị cho server Minecraft Paper của VNTaikoHub, chạy
+trên 1 VPS không có UDP/IPv6 khả dụng, nguỵ trang qua port 443 (vì VPS
+chặn port 25565 mặc định).
 
 ## Kiến trúc
 
