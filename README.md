@@ -1,9 +1,8 @@
 # VNTaikoHub MC Server
 
 Hạ tầng + dashboard quản trị cho server Minecraft Paper (Java Edition) của
-một nhóm bạn, chạy trên 1 VPS dùng chung với các website khác
-(`chunithm-app`, `chunithm-api`, dashboard này) trên cùng một máy
-(163.61.72.134, Ubuntu 24.04).
+một nhóm bạn, chạy trên 1 VPS dùng chung với các website khác trên cùng một
+máy (163.61.72.134, Ubuntu 24.04).
 
 ## 1. Bối cảnh — tại sao kiến trúc lại phức tạp thế này
 
@@ -64,10 +63,9 @@ map $ssl_preread_protocol $mc_backend {
 }
 ```
 
-Toàn bộ website khác trên máy (`chunithm-app`, `chunithm-api`, dashboard)
-phải đổi `listen 443` gốc thành `listen 127.0.0.1:18443 proxy_protocol;` —
-không còn nghe trực tiếp ở public 443 nữa, chỉ nhận traffic được nginx
-`stream{}` forward vào.
+Mọi website khác trên máy phải đổi `listen 443` gốc thành
+`listen 127.0.0.1:18443 proxy_protocol;` — không còn nghe trực tiếp ở public
+443 nữa, chỉ nhận traffic được nginx `stream{}` forward vào.
 
 **Giới hạn quan trọng**: `stream{}` chỉ hoạt động ở context top-level của
 `nginx.conf`, không đặt được trong `sites-available/*.conf` hay `conf.d/`
