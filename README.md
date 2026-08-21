@@ -58,7 +58,7 @@ và gửi lệnh console qua `screen`.
 
 - `backup/world_backup.sh` — tạm dừng ghi đĩa (`save-off`/`save-all flush`),
   nén `world/` thành `.tar.gz`, đẩy lên Google Drive qua `rclone`, tự xoá
-  bản backup cũ hơn 14 ngày trên Drive. Luôn bật lại `save-on` kể cả khi có
+  bản backup cũ hơn 7 ngày trên Drive. Luôn bật lại `save-on` kể cả khi có
   lỗi giữa chừng (dùng `trap`).
 - `systemd/mc-world-backup.timer` — chạy script trên lúc 5h sáng hàng ngày.
 - `rclone` remote `gdrive:` dùng OAuth client_id riêng (không dùng client_id

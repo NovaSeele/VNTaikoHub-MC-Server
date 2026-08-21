@@ -1,13 +1,13 @@
 #!/bin/bash
-# Nén world Minecraft và đẩy lên Google Drive (qua rclone), giữ 14 bản gần nhất.
+# Nén world Minecraft và đẩy lên Google Drive (qua rclone), giữ 7 bản gần nhất.
 set -uo pipefail
 
 WORLD_DIR="/home/minecraft/world"
 TMP_DIR="/tmp/mc-backup"
 DATE_TAG="$(date +%F_%H-%M)"
 ARCHIVE_NAME="world-${DATE_TAG}.tar.gz"
-REMOTE="gdrive:MinecraftBackups"
-RETENTION_DAYS=14
+REMOTE="gdrive:VnTaikoHub-MinecraftBackUps"
+RETENTION_DAYS=7
 LOG_TAG="mc-world-backup"
 ARCHIVE_PATH="${TMP_DIR}/${ARCHIVE_NAME}"
 
