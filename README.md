@@ -111,8 +111,12 @@ plugin nặng bên trong JVM của Paper.
   `world` hay `minecraft_overworld` dù đó là tên thư mục data của nó).
 - Sau lần render đầu, squaremap tự cập nhật khi chunk thay đổi — không cần
   timer định kỳ như cách cũ.
-- Discord bot `/map` chỉ trả về link `https://vntaikohub-map.novaseele.com/`
-  — không giới hạn admin vì đây là hành động chỉ đọc, không đổi dữ liệu gì.
+- Discord bot `/map` gửi kèm cả ảnh preview lẫn link — không giới hạn admin
+  vì đây là hành động chỉ đọc, không đổi dữ liệu gì. Ảnh không phải render
+  lại từ đầu: `dashboard/map_snapshot.py` chỉ ghép các tile PNG có sẵn của
+  squaremap (`plugins/squaremap/web/tiles/<world>/0/*.png`, zoom 0 = ít tile
+  nhất = toàn cảnh) lại thành 1 ảnh bằng Pillow — mất dưới 1 giây vì chỉ đọc
+  file có sẵn, không phải quét lại world. Cần `pip install Pillow`.
 
 ## Đồng hồ hệ thống
 
