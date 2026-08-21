@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Discord bot mirroring the web dashboard's functionality.
+"""Discord bot for managing the Minecraft server.
 
-Reuses the exact same helper functions as app.py (query_status,
-apply_player_action, run_console_command, perform_update, ...) so behaviour
-stays identical between the web dashboard and the bot — including the
-safety fixes already made there (no `/op`/`/reload`, direct ops.json edits,
-confirmation required for dangerous console commands).
+Uses mc_lib.py for all the actual logic (query_status, apply_player_action,
+run_console_command, perform_update, ...) — including the safety fixes
+already baked in there (no `/op`/`/reload`, direct ops.json edits,
+confirmation required for dangerous console commands). The web dashboard
+this used to mirror has been retired; mc_lib.py is what's left of it.
 
 Requires: pip install discord.py
 Config via environment variables (set in the systemd unit, not hardcoded):
@@ -21,7 +21,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from app import (
+from mc_lib import (
     DANGEROUS_COMMANDS,
     MC_HOST,
     MC_PORT,
