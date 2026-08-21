@@ -2,20 +2,21 @@
 
 Hạ tầng + dashboard quản trị cho server Minecraft Paper (Java Edition) của
 một nhóm bạn, chạy trên 1 VPS dùng chung với các website khác
-(`chunithm-app`, `chunithm-api`, dashboard này) trên cùng một máy BNIX
+(`chunithm-app`, `chunithm-api`, dashboard này) trên cùng một máy
 (163.61.72.134, Ubuntu 24.04).
 
 ## 1. Bối cảnh — tại sao kiến trúc lại phức tạp thế này
 
-Nhà cung cấp VPS (BNIX) có 2 giới hạn ảnh hưởng trực tiếp tới thiết kế:
+VPS này có 2 giới hạn ảnh hưởng trực tiếp tới thiết kế:
 
 1. **Chặn cổng 25565** (cổng mặc định của Minecraft) và **cấm host server
-   game qua ToS**. Xác nhận qua support trực tiếp.
-2. **Chặn UDP** ở tầng mạng, không chỉ tầng firewall guest OS. Bằng chứng:
+   game qua ToS**.
+2. **Không có UDP và IPv6** ở tầng mạng, không chỉ tầng firewall guest OS.
+   Bằng chứng:
    - `journalctl -u systemd-timesyncd` cho thấy timeout liên tục khi gọi NTP
      (UDP/123) tới `ntp.ubuntu.com`, dù đã thử nhiều server khác nhau.
-   - Tài liệu kỹ thuật công khai của BNIX (`doc.bnix.vn`) có mẫu cấu hình CSF
-     firewall mặc định chỉ mở `UDP_IN = "53"` (DNS), chặn phần còn lại.
+   - IPv6 trên VPS chỉ có link-local, không có route ra ngoài — outbound
+     IPv6 thật sự luôn thất bại.
    - Thử nghiệm với playit.gg: UDP outbound tới cổng điều khiển của nó bị
      drop âm thầm dù đã tắt IPv6 (loại trừ nguyên nhân IPv6) — chặn xảy ra ở
      tầng router/switch phía nhà cung cấp, không phải guest OS, nên không thể
@@ -26,9 +27,6 @@ Hệ quả thiết kế:
   plugin, WireGuard, NTP chuẩn...) — xem mục 6.
 - **Không thể** mở port riêng cho Minecraft — phải giấu traffic Minecraft
   đằng sau port 443 vốn đã có traffic HTTPS thật của các site khác.
-- Test bằng script benchmark chính chủ của BNIX
-  (`github.com/bnixvn/testvps`, dùng `fio`/`ioping`/`speedtest` Ookla) nếu
-  cần đối chiếu hiệu năng CPU/disk/network thực tế so với cấu hình niêm yết.
 
 Các phương án khác đã cân nhắc và loại bỏ trước khi chọn hướng hiện tại:
 Cloudflare Spectrum (trả phí, giá không rõ ràng), ngrok TCP tunnel (free tier
