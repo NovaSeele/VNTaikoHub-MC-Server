@@ -93,8 +93,7 @@ async def players_cmd(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed)
 
 
-@bot.tree.command(name="gamemode", description="Đổi gamemode người chơi")
-@app_commands.default_permissions(administrator=True)
+@bot.tree.command(name="gamemode", description="Đổi gamemode người chơi (chỉ admin)")
 @app_commands.describe(player="Tên người chơi (đang online)", mode="Gamemode mới")
 @app_commands.choices(mode=[
     app_commands.Choice(name="survival", value="survival"),
@@ -113,8 +112,7 @@ async def gamemode_cmd(interaction: discord.Interaction, player: str, mode: app_
         await interaction.response.send_message(f"❌ {result.get('error')}", ephemeral=True)
 
 
-@bot.tree.command(name="oplevel", description="Đổi OP level người chơi")
-@app_commands.default_permissions(administrator=True)
+@bot.tree.command(name="oplevel", description="Đổi OP level người chơi (chỉ admin)")
 @app_commands.describe(player="Tên người chơi (đúng hoa/thường)", level="OP level (0 = xoá OP, 1-4)")
 async def oplevel_cmd(interaction: discord.Interaction, player: str, level: app_commands.Range[int, 0, 4]):
     if not is_admin(interaction):
@@ -149,8 +147,7 @@ class ConfirmDangerView(discord.ui.View):
         self.stop()
 
 
-@bot.tree.command(name="console", description="Chạy lệnh console Minecraft")
-@app_commands.default_permissions(administrator=True)
+@bot.tree.command(name="console", description="Chạy lệnh console Minecraft (chỉ admin)")
 @app_commands.describe(command="Lệnh console (không kèm dấu /), ví dụ: say hello")
 async def console_cmd(interaction: discord.Interaction, command: str):
     if not is_admin(interaction):
@@ -186,8 +183,7 @@ async def version_cmd(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed)
 
 
-@bot.tree.command(name="update", description="Cập nhật Paper lên bản mới nhất, tự restart server")
-@app_commands.default_permissions(administrator=True)
+@bot.tree.command(name="update", description="Cập nhật Paper lên bản mới nhất, tự restart server (chỉ admin)")
 async def update_cmd(interaction: discord.Interaction):
     if not is_admin(interaction):
         await interaction.response.send_message("❌ Bạn không có quyền dùng lệnh này.", ephemeral=True)
@@ -201,21 +197,29 @@ async def update_cmd(interaction: discord.Interaction):
         await interaction.followup.send(f"❌ {result.get('error')}")
 
 
+_map_render_lock = asyncio.Lock()
+
+
 @bot.tree.command(name="map", description="Xem bản đồ tổng quan Overworld (ảnh, cập nhật định kỳ)")
-@app_commands.describe(refresh="Render lại bản đồ mới nhất — mất khoảng 30-45 phút, chỉ admin")
+@app_commands.describe(refresh="Render lại bản đồ mới nhất — mất khoảng 30-45 phút")
 async def map_cmd(interaction: discord.Interaction, refresh: bool = False):
     if refresh:
-        if not is_admin(interaction):
-            await interaction.response.send_message("❌ Chỉ admin mới render lại được (mất khoảng 30-45 phút).", ephemeral=True)
+        if _map_render_lock.locked():
+            await interaction.response.send_message("⏳ Đang có 1 lượt render khác chạy rồi, đợi xong rồi thử lại.", ephemeral=True)
             return
         await interaction.response.send_message("🗺️ Đang render lại bản đồ, mất khoảng 30-45 phút — dùng `/map` lại sau để xem bản mới.")
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, get_cached_or_render, True)
+
+        async def _render_locked():
+            async with _map_render_lock:
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, get_cached_or_render, True)
+
+        asyncio.create_task(_render_locked())
         return
 
     await interaction.response.defer()
     if not os.path.exists(MAP_PATH):
-        await interaction.followup.send("Chưa có bản đồ nào được render. Admin dùng `/map refresh:true` để tạo lần đầu.")
+        await interaction.followup.send("Chưa có bản đồ nào được render. Dùng `/map refresh:true` để tạo lần đầu.")
         return
     updated_str = time.strftime("%d/%m/%Y %H:%M", time.localtime(os.path.getmtime(MAP_PATH)))
     await interaction.followup.send(
