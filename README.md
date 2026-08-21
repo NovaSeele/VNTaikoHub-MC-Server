@@ -32,13 +32,19 @@ và gửi lệnh console qua `screen`.
   biết được IP thật của người chơi dù đi qua nginx.
 - `dashboard/discord_bot.py` — bot Discord (slash command), import thẳng các
   hàm xử lý từ `app.py` nên hành vi giống hệt web dashboard. Lệnh xem
-  (`/status`, `/players`, `/version`) mở cho mọi người; lệnh thay đổi
-  (`/gamemode`, `/oplevel`, `/console`, `/update`) chỉ 1 Discord user ID
-  (`DISCORD_ADMIN_ID`) dùng được. Cần `pip install discord.py`.
+  (`/status`, `/players`, `/version`, `/map`) mở cho mọi người; lệnh thay đổi
+  (`/gamemode`, `/oplevel`, `/console`, `/update`, `/map refresh:true`) chỉ 1
+  Discord user ID (`DISCORD_ADMIN_ID`) dùng được. Cần `pip install discord.py`.
+- `dashboard/map_render.py` — render ảnh bản đồ top-down Overworld (1 pixel/
+  chunk) từ file `.mca` trong world save. Đọc trực tiếp path
+  `world/dimensions/minecraft/overworld/region/` (Minecraft 26.x đổi cấu
+  trúc thư mục, không còn `world/region/` kiểu cũ). Mất khoảng 15-30 phút
+  cho world hiện tại (300 region file) nên chạy định kỳ qua timer, không
+  render theo từng request. Cần `pip install anvil-parser2 Pillow`.
 - `backup/world_backup.sh` — nén + upload world lên Google Drive.
 - `systemd/*.service`, `systemd/*.timer` — `minecraft`, `mc-dashboard`,
   `mc-proxy-relay`, `mc-discord-bot`, `mc-world-backup` (+ timer),
-  `htpdate-sync` (+ timer).
+  `htpdate-sync` (+ timer), `mc-map-render` (+ timer, mỗi 12h).
 - `nginx/stream-mc.conf` — đoạn cấu hình `stream {}` cần dán vào
   `/etc/nginx/nginx.conf` (top-level, không đặt được trong sites-available).
 - `scripts/run.sh` — script khởi động Paper (Aikar's flags).
@@ -59,9 +65,11 @@ và gửi lệnh console qua `screen`.
 6. Tạo `/etc/mc-dashboard-auth.env` cho đăng nhập admin dashboard (xem
    hướng dẫn hash mật khẩu trong `dashboard/app.py`, hàm `_load_auth_config`).
 7. Cài `rclone`, cấu hình remote `gdrive:` (xem phần Backup bên dưới).
-8. (Tuỳ chọn) Bot Discord: `pip install discord.py`, tạo
+8. (Tuỳ chọn) Bot Discord: `pip install discord.py anvil-parser2 Pillow`, tạo
    `/etc/mc-discord-bot.env` chứa `DISCORD_BOT_TOKEN=...` và
    `DISCORD_ADMIN_ID=...`, rồi `systemctl enable --now mc-discord-bot`.
+   Bật thêm `systemctl enable --now mc-map-render.timer` để tự render bản đồ
+   định kỳ (chạy tay lần đầu: `python3 /opt/mc-dashboard/map_render.py`).
 
 ## Backup world tự động (Google Drive)
 
