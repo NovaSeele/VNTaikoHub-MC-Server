@@ -34,6 +34,7 @@ from app import (
     query_status,
     run_console_command,
 )
+from map_snapshot import build_snapshot
 
 BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "")
 ADMIN_USER_ID = int(os.environ.get("DISCORD_ADMIN_ID", "0") or "0")
@@ -194,9 +195,18 @@ async def update_cmd(interaction: discord.Interaction):
         await interaction.followup.send(f"❌ {result.get('error')}")
 
 
-@bot.tree.command(name="map", description="Xem bản đồ trực tiếp Overworld (web, cập nhật liên tục)")
+@bot.tree.command(name="map", description="Xem bản đồ Overworld (ảnh + link xem trực tiếp)")
 async def map_cmd(interaction: discord.Interaction):
-    await interaction.response.send_message(f"🗺️ Bản đồ trực tiếp: {MAP_URL}")
+    await interaction.response.defer()
+    try:
+        img_path = build_snapshot()
+    except Exception as e:
+        await interaction.followup.send(f"🗺️ Bản đồ trực tiếp: {MAP_URL}\n(không ghép được ảnh preview: {e})")
+        return
+    await interaction.followup.send(
+        content=f"🗺️ Bản đồ trực tiếp (zoom/pan được): {MAP_URL}",
+        file=discord.File(img_path, filename="map.png"),
+    )
 
 
 if __name__ == "__main__":
