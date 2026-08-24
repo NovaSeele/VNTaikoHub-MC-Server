@@ -468,15 +468,28 @@ def get_current_jar() -> dict | None:
     return {"jar_name": name, "mc_version": m.group(1), "build": int(m.group(2))}
 
 
+USER_AGENT = "Mozilla/5.0 (compatible; VNTaikoHub-MC-bot)"
+
+
+def _urlopen(url: str, timeout: float):
+    # PaperMC's download CDN (fill-data.papermc.io) returns 403 for
+    # urllib's default "Python-urllib/x.y" User-Agent — confirmed by
+    # testing the exact same URL with/without one. The metadata API
+    # (fill.papermc.io) happens to not care, but set it everywhere for
+    # consistency in case that changes too.
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    return urllib.request.urlopen(req, timeout=timeout)
+
+
 def get_latest_stable() -> dict:
-    with urllib.request.urlopen(f"{FILL_API}", timeout=10) as resp:
+    with _urlopen(f"{FILL_API}", 10) as resp:
         project = json.load(resp)
     # Keys are ordered newest-group-first by the API.
     for group, versions in project["versions"].items():
         # Prefer a plain release name in the group (skip "-rc-"/"-pre" entries).
         stable_versions = [v for v in versions if "-" not in v] or versions
         mc_version = stable_versions[0]
-        with urllib.request.urlopen(f"{FILL_API}/versions/{mc_version}/builds", timeout=10) as resp:
+        with _urlopen(f"{FILL_API}/versions/{mc_version}/builds", 10) as resp:
             builds = json.load(resp)
         stable_builds = [b for b in builds if b["channel"] == "STABLE"]
         if not stable_builds:
@@ -509,7 +522,8 @@ def perform_update() -> dict:
         return {"success": False, "error": "already up to date", "current": current}
 
     tmp_path = f"{MC_DIR}/{latest['jar_name']}.downloading"
-    urllib.request.urlretrieve(latest["url"], tmp_path)
+    with _urlopen(latest["url"], 60) as resp, open(tmp_path, "wb") as f:
+        shutil.copyfileobj(resp, f)
 
     actual_sha = _sha256_file(tmp_path)
     if actual_sha != latest["sha256"]:
