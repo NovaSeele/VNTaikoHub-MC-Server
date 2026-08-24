@@ -79,7 +79,11 @@ async def status_cmd(interaction: discord.Interaction):
     except Exception as e:
         await interaction.followup.send(f"❌ Server offline hoặc không phản hồi: {e}")
         return
-    stats = get_system_stats()
+    try:
+        stats = get_system_stats()
+    except Exception as e:
+        await interaction.followup.send(f"❌ Lỗi khi đọc tài nguyên hệ thống: {e}")
+        return
     embed = discord.Embed(title="Trạng thái server", color=discord.Color.green())
     embed.add_field(name="Người chơi", value=f"{status['players_online']}/{status['players_max']}", inline=True)
     embed.add_field(name="Ping", value=f"{status['latency_ms']}ms", inline=True)
@@ -95,7 +99,11 @@ async def status_cmd(interaction: discord.Interaction):
 @bot.tree.command(name="players", description="Danh sách người chơi đã từng vào server")
 async def players_cmd(interaction: discord.Interaction):
     await interaction.response.defer()
-    players = get_all_players()
+    try:
+        players = get_all_players()
+    except Exception as e:
+        await interaction.followup.send(f"❌ Lỗi: {e}")
+        return
     if not players:
         await interaction.followup.send("Chưa có người chơi nào.")
         return
@@ -112,7 +120,11 @@ async def players_cmd(interaction: discord.Interaction):
 @app_commands.describe(player="Tên người chơi (đúng hoa/thường)")
 async def biomes_cmd(interaction: discord.Interaction, player: str):
     await interaction.response.defer()
-    result = get_player_biomes(player)
+    try:
+        result = get_player_biomes(player)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Lỗi: {e}")
+        return
     if "error" in result:
         await interaction.followup.send(f"❌ {result['error']}")
         return
@@ -141,7 +153,11 @@ async def gamemode_cmd(interaction: discord.Interaction, player: str, mode: app_
     if not is_admin(interaction):
         await interaction.response.send_message("❌ Bạn không có quyền dùng lệnh này.", ephemeral=True)
         return
-    result = apply_player_action(player, "gamemode", mode.value)
+    try:
+        result = apply_player_action(player, "gamemode", mode.value)
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Lỗi: {e}", ephemeral=True)
+        return
     if result["success"]:
         await interaction.response.send_message(f"✅ Đã đổi gamemode của **{player}** thành `{mode.value}`.")
     else:
@@ -154,7 +170,11 @@ async def oplevel_cmd(interaction: discord.Interaction, player: str, level: app_
     if not is_admin(interaction):
         await interaction.response.send_message("❌ Bạn không có quyền dùng lệnh này.", ephemeral=True)
         return
-    result = apply_player_action(player, "op_level", str(level))
+    try:
+        result = apply_player_action(player, "op_level", str(level))
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Lỗi: {e}", ephemeral=True)
+        return
     if result["success"]:
         note = result.get("note", "")
         await interaction.response.send_message(f"✅ Đã đặt OP level của **{player}** = {level}. {note}")
@@ -171,7 +191,12 @@ class ConfirmDangerView(discord.ui.View):
 
     @discord.ui.button(label="Xác nhận", style=discord.ButtonStyle.danger)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
-        result = run_console_command(self.command, confirmed=True)
+        try:
+            result = run_console_command(self.command, confirmed=True)
+        except Exception as e:
+            await interaction.response.edit_message(content=f"❌ Lỗi khi chạy `{self.command}`: {e}", view=None)
+            self.stop()
+            return
         output = result.get("output") or []
         text = "\n".join(output[-10:]) or "(không có output)"
         await interaction.response.edit_message(content=f"✅ Đã chạy `{self.command}`:\n```\n{text[:1800]}\n```", view=None)
@@ -189,7 +214,11 @@ async def console_cmd(interaction: discord.Interaction, command: str):
     if not is_admin(interaction):
         await interaction.response.send_message("❌ Bạn không có quyền dùng lệnh này.", ephemeral=True)
         return
-    result = run_console_command(command, confirmed=False)
+    try:
+        result = run_console_command(command, confirmed=False)
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Lỗi: {e}", ephemeral=True)
+        return
     if result.get("needs_confirm"):
         view = ConfirmDangerView(command)
         await interaction.response.send_message(f"⚠️ {result['error']}", view=view, ephemeral=True)
@@ -225,7 +254,11 @@ async def update_cmd(interaction: discord.Interaction):
         await interaction.response.send_message("❌ Bạn không có quyền dùng lệnh này.", ephemeral=True)
         return
     await interaction.response.defer()
-    result = perform_update()
+    try:
+        result = perform_update()
+    except Exception as e:
+        await interaction.followup.send(f"❌ Lỗi khi cập nhật: {e}")
+        return
     if result.get("success"):
         jar_name = (result.get("to") or {}).get("jar_name", "?")
         await interaction.followup.send(f"✅ Đã cập nhật lên `{jar_name}` và khởi động lại server.")
