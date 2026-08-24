@@ -40,6 +40,7 @@ from map_snapshot import build_snapshot
 BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "")
 ADMIN_USER_ID = int(os.environ.get("DISCORD_ADMIN_ID", "0") or "0")
 MAP_URL = "https://vntaikohub-map.novaseele.com/"
+SERVER_ADDRESS = "vntaikohub.novaseele.com"
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!mc-unused-", intents=intents)
@@ -53,6 +54,14 @@ def is_admin(interaction: discord.Interaction) -> bool:
 async def on_ready():
     await bot.tree.sync()
     print(f"Logged in as {bot.user} (admin id: {ADMIN_USER_ID})")
+
+
+@bot.tree.command(name="join", description="Xem địa chỉ để vào server Minecraft")
+async def join_cmd(interaction: discord.Interaction):
+    await interaction.response.send_message(
+        f"🎮 Địa chỉ server: `{SERVER_ADDRESS}`\n"
+        f"Dán vào ô Server Address trong Minecraft (Java Edition) — không cần nhập thêm cổng."
+    )
 
 
 @bot.tree.command(name="status", description="Xem trạng thái server Minecraft")
