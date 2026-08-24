@@ -64,6 +64,13 @@ async def join_cmd(interaction: discord.Interaction):
     )
 
 
+@bot.tree.command(name="help", description="Xem danh sách tất cả lệnh")
+async def help_cmd(interaction: discord.Interaction):
+    lines = sorted(f"`/{cmd.name}` — {cmd.description}" for cmd in bot.tree.get_commands())
+    embed = discord.Embed(title="Danh sách lệnh", description="\n".join(lines), color=discord.Color.blurple())
+    await interaction.response.send_message(embed=embed)
+
+
 @bot.tree.command(name="status", description="Xem trạng thái server Minecraft")
 async def status_cmd(interaction: discord.Interaction):
     await interaction.response.defer()
