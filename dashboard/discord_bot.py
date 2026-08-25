@@ -12,6 +12,7 @@ Config via environment variables (set in the systemd unit, not hardcoded):
   DISCORD_BOT_TOKEN — bot token from the Discord Developer Portal
   DISCORD_ADMIN_ID  — Discord user ID allowed to run state-changing commands
 """
+import json
 import os
 import sys
 
@@ -41,13 +42,34 @@ BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "")
 ADMIN_USER_ID = int(os.environ.get("DISCORD_ADMIN_ID", "0") or "0")
 MAP_URL = "https://vntaikohub-map.novaseele.com/"
 SERVER_ADDRESS = "vntaikohub.novaseele.com"
+EXTRA_ADMINS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "extra_admins.json")
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!mc-unused-", intents=intents)
 
 
-def is_admin(interaction: discord.Interaction) -> bool:
+def _load_extra_admins() -> set[int]:
+    try:
+        with open(EXTRA_ADMINS_FILE, "r", encoding="utf-8") as f:
+            return set(json.load(f))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return set()
+
+
+def _save_extra_admins() -> None:
+    with open(EXTRA_ADMINS_FILE, "w", encoding="utf-8") as f:
+        json.dump(sorted(extra_admins), f)
+
+
+extra_admins: set[int] = _load_extra_admins()
+
+
+def is_owner(interaction: discord.Interaction) -> bool:
     return interaction.user.id == ADMIN_USER_ID
+
+
+def is_admin(interaction: discord.Interaction) -> bool:
+    return interaction.user.id == ADMIN_USER_ID or interaction.user.id in extra_admins
 
 
 @bot.event
@@ -264,6 +286,37 @@ async def update_cmd(interaction: discord.Interaction):
         await interaction.followup.send(f"✅ Đã cập nhật lên `{jar_name}` và khởi động lại server.")
     else:
         await interaction.followup.send(f"❌ {result.get('error')}")
+
+
+@bot.tree.command(name="grantadmin", description="Cấp quyền dùng lệnh admin cho 1 user Discord")
+@app_commands.describe(user="User cần cấp quyền (ping)")
+async def grantadmin_cmd(interaction: discord.Interaction, user: discord.Member):
+    if not is_owner(interaction):
+        await interaction.response.send_message("❌ Chỉ NovaSeele mới dùng được lệnh này.", ephemeral=True)
+        return
+    if user.id == ADMIN_USER_ID:
+        await interaction.response.send_message("ℹ️ User này đã là admin gốc.", ephemeral=True)
+        return
+    if user.id in extra_admins:
+        await interaction.response.send_message(f"ℹ️ {user.mention} đã có quyền admin rồi.", ephemeral=True)
+        return
+    extra_admins.add(user.id)
+    _save_extra_admins()
+    await interaction.response.send_message(f"✅ Đã cấp quyền admin cho {user.mention}.")
+
+
+@bot.tree.command(name="revokeadmin", description="Thu hồi quyền dùng lệnh admin của 1 user Discord")
+@app_commands.describe(user="User cần thu hồi quyền (ping)")
+async def revokeadmin_cmd(interaction: discord.Interaction, user: discord.Member):
+    if not is_owner(interaction):
+        await interaction.response.send_message("❌ Chỉ NovaSeele mới dùng được lệnh này.", ephemeral=True)
+        return
+    if user.id not in extra_admins:
+        await interaction.response.send_message(f"ℹ️ {user.mention} không có trong danh sách được cấp quyền.", ephemeral=True)
+        return
+    extra_admins.discard(user.id)
+    _save_extra_admins()
+    await interaction.response.send_message(f"✅ Đã thu hồi quyền admin của {user.mention}.")
 
 
 @bot.tree.command(name="map", description="Xem bản đồ Overworld (ảnh + link xem trực tiếp)")
