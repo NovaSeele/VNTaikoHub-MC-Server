@@ -97,6 +97,14 @@ bộ logic nằm ở `mc_lib.py`; bot chỉ là lớp slash command bên trên.
 - `/map` trên Discord gửi kèm ảnh preview + link. `map_snapshot.py` ghép
   tile zoom-0 có sẵn của squaremap — không render lại, <1s.
 
+## WorldEdit
+
+- Plugin từ https://modrinth.com/plugin/worldedit, bản khớp version server (vd
+  `worldedit-bukkit-7.4.5.jar` cho MC 26.2), bỏ vào `plugins/`.
+- Không có plugin phân quyền (LuckPerms...) trên server — quyền WorldEdit
+  theo cơ chế mặc định của Bukkit: chỉ tài khoản op mới dùng được. Cấp qua
+  `/oplevel` trên Discord, không cấp lẻ theo permission node.
+
 ## Đồng hồ hệ thống
 
 UDP bị chặn nên `systemd-timesyncd` (NTP qua UDP/123) không sync được. Thay
