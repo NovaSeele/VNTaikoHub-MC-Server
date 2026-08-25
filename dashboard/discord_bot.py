@@ -36,7 +36,7 @@ from mc_lib import (
     query_status,
     run_console_command,
 )
-from map_snapshot import build_snapshot
+from map_snapshot import WORLDS, build_snapshot
 
 BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "")
 ADMIN_USER_ID = int(os.environ.get("DISCORD_ADMIN_ID", "0") or "0")
@@ -319,22 +319,29 @@ async def revokeadmin_cmd(interaction: discord.Interaction, user: discord.Member
     await interaction.response.send_message(f"✅ Đã thu hồi quyền admin của {user.mention}.")
 
 
-@bot.tree.command(name="map", description="Xem bản đồ Overworld (ảnh + link xem trực tiếp)")
+@bot.tree.command(name="map", description="Xem bản đồ Overworld/Nether/The End (ảnh + link xem trực tiếp)")
 async def map_cmd(interaction: discord.Interaction):
     await interaction.response.defer()
-    try:
-        img_path = build_snapshot()
-    except Exception as e:
-        await interaction.followup.send(
-            f"🗺️ Live Map: {MAP_URL}\n"
-            f"-# Nếu mở web thấy thiếu/cũ, thử tab ẩn danh — trình duyệt hay giữ cache ảnh bản đồ cũ dù đã bấm Ctrl+F5.\n"
-            f"(không ghép được ảnh preview: {e})"
-        )
-        return
-    await interaction.followup.send(
-        content=f"🗺️ Live Map: {MAP_URL}\n-# Nếu mở web thấy thiếu/cũ, thử tab ẩn danh — trình duyệt hay giữ cache ảnh bản đồ cũ dù đã bấm Ctrl+F5.",
-        file=discord.File(img_path, filename="map.png"),
+    files = []
+    missing = []
+    for world, label in WORLDS:
+        try:
+            img_path = build_snapshot(world)
+        except Exception:
+            missing.append(label)
+            continue
+        files.append(discord.File(img_path, filename=f"{world}.png"))
+
+    content = (
+        f"🗺️ Live Map: {MAP_URL}\n"
+        f"-# Nếu mở web thấy thiếu/cũ, thử tab ẩn danh — trình duyệt hay giữ cache ảnh bản đồ cũ dù đã bấm Ctrl+F5."
     )
+    if missing:
+        content += f"\n-# Chưa có ảnh: {', '.join(missing)} (world chưa render lần nào)."
+    if not files:
+        await interaction.followup.send(content)
+        return
+    await interaction.followup.send(content=content, files=files)
 
 
 if __name__ == "__main__":

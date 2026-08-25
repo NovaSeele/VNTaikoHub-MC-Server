@@ -15,7 +15,13 @@ from PIL import Image
 
 TILES_ROOT = "/home/minecraft/plugins/squaremap/web/tiles"
 TILE_SIZE = 512
-SNAPSHOT_PATH = "/tmp/mc-map-snapshot.png"
+SNAPSHOT_PATH_TEMPLATE = "/tmp/mc-map-snapshot-{world}.png"
+
+WORLDS = [
+    ("minecraft_overworld", "Overworld"),
+    ("minecraft_the_nether", "Nether"),
+    ("minecraft_the_end", "The End"),
+]
 
 
 def build_snapshot(world: str = "minecraft_overworld", zoom: int = 0) -> str:
@@ -45,9 +51,14 @@ def build_snapshot(world: str = "minecraft_overworld", zoom: int = 0) -> str:
         with Image.open(os.path.join(tiles_dir, fname)) as tile:
             canvas.paste(tile, ((x - min_x) * TILE_SIZE, (z - min_z) * TILE_SIZE))
 
-    canvas.convert("RGB").save(SNAPSHOT_PATH)
-    return SNAPSHOT_PATH
+    out_path = SNAPSHOT_PATH_TEMPLATE.format(world=world)
+    canvas.convert("RGB").save(out_path)
+    return out_path
 
 
 if __name__ == "__main__":
-    print(build_snapshot())
+    for world, label in WORLDS:
+        try:
+            print(label, "->", build_snapshot(world))
+        except Exception as e:
+            print(label, "-> lỗi:", e)
