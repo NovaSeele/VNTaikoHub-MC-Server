@@ -15,13 +15,23 @@ from PIL import Image
 
 TILES_ROOT = "/home/minecraft/plugins/squaremap/web/tiles"
 TILE_SIZE = 512
-SNAPSHOT_PATH_TEMPLATE = "/tmp/mc-map-snapshot-{world}.png"
+SNAPSHOT_PATH_TEMPLATE = "/tmp/mc-map-snapshot-{world}-{zoom}.png"
 
 WORLDS = [
     ("minecraft_overworld", "Overworld"),
     ("minecraft_the_nether", "Nether"),
     ("minecraft_the_end", "The End"),
 ]
+
+
+MAX_DETAIL_BYTES = 9 * 1024 * 1024  # stay under Discord's 10MB default upload cap
+
+
+def _tile_count(world: str, zoom: int) -> int:
+    tiles_dir = os.path.join(TILES_ROOT, world, str(zoom))
+    if not os.path.isdir(tiles_dir):
+        return 0
+    return sum(1 for f in os.listdir(tiles_dir) if f.endswith(".png"))
 
 
 def build_snapshot(world: str = "minecraft_overworld", zoom: int = 0) -> str:
@@ -51,9 +61,24 @@ def build_snapshot(world: str = "minecraft_overworld", zoom: int = 0) -> str:
         with Image.open(os.path.join(tiles_dir, fname)) as tile:
             canvas.paste(tile, ((x - min_x) * TILE_SIZE, (z - min_z) * TILE_SIZE))
 
-    out_path = SNAPSHOT_PATH_TEMPLATE.format(world=world)
+    out_path = SNAPSHOT_PATH_TEMPLATE.format(world=world, zoom=zoom)
     canvas.convert("RGB").save(out_path)
     return out_path
+
+
+def best_detail_snapshot(world: str) -> tuple[str, int]:
+    """Most detailed snapshot for world that still fits under MAX_DETAIL_BYTES.
+
+    Tries the highest zoom (most tiles, most detail) first and steps down —
+    zoom 0 always wins as the last resort even if somehow still oversized.
+    """
+    for zoom in (3, 2, 1, 0):
+        if _tile_count(world, zoom) == 0:
+            continue
+        path = build_snapshot(world, zoom=zoom)
+        if zoom == 0 or os.path.getsize(path) <= MAX_DETAIL_BYTES:
+            return path, zoom
+    raise RuntimeError(f"Không có tile nào cho {world}")
 
 
 if __name__ == "__main__":

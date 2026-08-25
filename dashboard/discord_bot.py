@@ -36,7 +36,7 @@ from mc_lib import (
     query_status,
     run_console_command,
 )
-from map_snapshot import WORLDS, build_snapshot
+from map_snapshot import WORLDS, best_detail_snapshot, build_snapshot
 
 BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "")
 ADMIN_USER_ID = int(os.environ.get("DISCORD_ADMIN_ID", "0") or "0")
@@ -320,17 +320,34 @@ async def revokeadmin_cmd(interaction: discord.Interaction, user: discord.Member
 
 
 @bot.tree.command(name="map", description="Xem bản đồ Overworld/Nether/The End (ảnh + link xem trực tiếp)")
-async def map_cmd(interaction: discord.Interaction):
+@app_commands.describe(world="Chỉ xem 1 map, ảnh chi tiết hơn (bỏ trống = xem cả 3, ảnh tổng quan)")
+@app_commands.choices(world=[
+    app_commands.Choice(name=label, value=key) for key, label in WORLDS
+])
+async def map_cmd(interaction: discord.Interaction, world: app_commands.Choice[str] = None):
     await interaction.response.defer()
+
+    if world is not None:
+        try:
+            img_path, zoom = best_detail_snapshot(world.value)
+        except Exception as e:
+            await interaction.followup.send(f"❌ Không ghép được ảnh {world.name}: {e}")
+            return
+        await interaction.followup.send(
+            content=f"🗺️ {world.name} (zoom {zoom}) — Live Map: {MAP_URL}",
+            file=discord.File(img_path, filename=f"{world.value}.png"),
+        )
+        return
+
     files = []
     missing = []
-    for world, label in WORLDS:
+    for w, label in WORLDS:
         try:
-            img_path = build_snapshot(world)
+            img_path = build_snapshot(w)
         except Exception:
             missing.append(label)
             continue
-        files.append(discord.File(img_path, filename=f"{world}.png"))
+        files.append(discord.File(img_path, filename=f"{w}.png"))
 
     content = (
         f"🗺️ Live Map: {MAP_URL}\n"
