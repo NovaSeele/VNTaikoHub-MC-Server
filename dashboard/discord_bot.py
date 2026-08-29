@@ -172,6 +172,25 @@ async def status_cmd(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed)
 
 
+def _format_player_row(p: dict) -> str:
+    name = p["name"][:15].ljust(16)
+    gamemode = (p["gamemode"] or "?")[:9].ljust(10)
+    op = (f"OP{p['op_level']}" if p["op_level"] else "").ljust(4)
+    time_part = ""
+    if p.get("last_seen"):
+        ago = _time_ago(p["last_seen"])
+        time_part = ago if p["online"] else f"{ago} trước"
+    return f"{name}{gamemode}{op} {time_part}".rstrip()
+
+
+def _format_player_block(players: list) -> str:
+    rows = [_format_player_row(p) for p in players]
+    text = "\n".join(rows)
+    if len(text) > 1000:
+        text = text[:1000].rsplit("\n", 1)[0] + "\n… (còn nữa)"
+    return f"```\n{text}\n```"
+
+
 @bot.tree.command(name="players", description="Danh sách người chơi đã từng vào server")
 async def players_cmd(interaction: discord.Interaction):
     await interaction.response.defer()
@@ -183,15 +202,15 @@ async def players_cmd(interaction: discord.Interaction):
     if not players:
         await interaction.followup.send("Chưa có người chơi nào.")
         return
-    lines = []
-    for p in players:
-        time_info = ""
-        if p.get("last_seen"):
-            ago = _time_ago(p["last_seen"])
-            time_info = f", đang online {ago}" if p["online"] else f", lần cuối online {ago} trước"
-        lines.append(f"{'🟢' if p['online'] else '⚫'} **{p['name']}** — {p['gamemode'] or '?'}, OP level {p['op_level']}{time_info}")
-    text = "\n".join(lines)
-    embed = discord.Embed(title=f"Người chơi ({len(players)})", description=text[:4000], color=discord.Color.blue())
+
+    online = sorted((p for p in players if p["online"]), key=lambda p: p["name"].lower())
+    offline = sorted((p for p in players if not p["online"]), key=lambda p: p.get("last_seen") or "", reverse=True)
+
+    embed = discord.Embed(title=f"Người chơi ({len(players)})", color=discord.Color.blue())
+    if online:
+        embed.add_field(name=f"🟢 Đang online ({len(online)})", value=_format_player_block(online), inline=False)
+    if offline:
+        embed.add_field(name=f"⚫ Offline ({len(offline)})", value=_format_player_block(offline), inline=False)
     await interaction.followup.send(embed=embed)
 
 
