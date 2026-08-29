@@ -37,6 +37,7 @@ from mc_lib import (
     perform_update,
     query_status,
     run_console_command,
+    set_chat_bridge,
 )
 from map_snapshot import WORLDS, best_detail_snapshot, build_snapshot
 
@@ -350,6 +351,30 @@ class ConfirmDangerView(discord.ui.View):
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.edit_message(content="Đã huỷ.", view=None)
         self.stop()
+
+
+@bot.tree.command(name="chatbridge", description="Bật/tắt chat 2 chiều Discord <-> Minecraft (DiscordSRV)")
+@app_commands.describe(direction="Chiều muốn đổi", enabled="Bật hay tắt")
+@app_commands.choices(direction=[
+    app_commands.Choice(name="Minecraft → Discord", value="mc_to_discord"),
+    app_commands.Choice(name="Discord → Minecraft", value="discord_to_mc"),
+    app_commands.Choice(name="Cả 2 chiều", value="both"),
+])
+async def chatbridge_cmd(interaction: discord.Interaction, direction: app_commands.Choice[str], enabled: bool):
+    if not is_admin(interaction):
+        await interaction.response.send_message("❌ Bạn không có quyền dùng lệnh này.", ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    try:
+        result = set_chat_bridge(direction.value, enabled)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Lỗi: {e}")
+        return
+    if result["success"]:
+        state = "Bật" if enabled else "Tắt"
+        await interaction.followup.send(f"✅ {state} chat {direction.name}.")
+    else:
+        await interaction.followup.send(f"❌ {result.get('error')}")
 
 
 @bot.tree.command(name="console", description="Chạy lệnh console Minecraft")

@@ -102,6 +102,26 @@ bộ logic nằm ở `mc_lib.py`; bot chỉ là lớp slash command bên trên.
 - `/map` trên Discord gửi kèm ảnh preview + link. `map_snapshot.py` ghép
   tile zoom-0 có sẵn của squaremap — không render lại, <1s.
 
+## Chat 2 chiều (DiscordSRV)
+
+- Plugin từ https://modrinth.com/plugin/discordsrv, bỏ vào `plugins/`.
+- Dùng **chung bot token** với `discord_bot.py` (`DISCORD_BOT_TOKEN` trong
+  `secrets.txt`) — 2 process (Python + JDA trong DiscordSRV) cùng mở gateway
+  trên 1 token. Không chính thức được Discord hỗ trợ (rủi ro session bị
+  invalidate ngẫu nhiên), nhưng chấp nhận đánh đổi để khỏi tạo bot riêng.
+  Nếu bot chính hay bị rớt kết nối bất thường, nghi ngờ đầu tiên là đây.
+- Cần bật 2 privileged intent cho app bot trên Discord Developer Portal →
+  Bot → Privileged Gateway Intents: **Server Members Intent** và
+  **Message Content Intent**. Thiếu 1 trong 2 là JDA login xong nhưng bị
+  disconnect ngay ("missing intents").
+- `plugins/DiscordSRV/config.yml`: set `BotToken`, `Channels: {"global":
+  "<channel_id>"}`. Đổi `BotToken` bắt buộc **restart** (chỉ đọc lúc init);
+  đổi hầu hết config khác (kể cả 2 flag chat 2 chiều bên dưới) chỉ cần lệnh
+  console `discordsrv reload`, không cần restart.
+- `/chatbridge` trên Discord (admin) — bật/tắt từng chiều
+  (`DiscordChatChannelMinecraftToDiscord` / `DiscordChatChannelDiscordToMinecraft`
+  trong config.yml) hoặc cả 2, tự chạy `discordsrv reload` sau khi sửa.
+
 ## WorldEdit
 
 - Plugin từ https://modrinth.com/plugin/worldedit, bản khớp version server (vd

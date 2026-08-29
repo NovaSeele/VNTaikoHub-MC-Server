@@ -28,6 +28,12 @@ LOG_PATH = f"{MC_DIR}/logs/latest.log"
 GAMEMODE_NAMES = {0: "survival", 1: "creative", 2: "adventure", 3: "spectator"}
 RUN_SH = f"{MC_DIR}/run.sh"
 FILL_API = "https://fill.papermc.io/v3/projects/paper"
+DISCORDSRV_CONFIG = f"{MC_DIR}/plugins/DiscordSRV/config.yml"
+CHAT_BRIDGE_KEYS = {
+    "mc_to_discord": ["DiscordChatChannelMinecraftToDiscord"],
+    "discord_to_mc": ["DiscordChatChannelDiscordToMinecraft"],
+    "both": ["DiscordChatChannelMinecraftToDiscord", "DiscordChatChannelDiscordToMinecraft"],
+}
 
 
 def _write_varint(value: int) -> bytes:
@@ -432,6 +438,35 @@ def apply_player_action(name: str, action: str, value: str) -> dict:
         update_ops_json(name, level)
         return {"success": True, "note": "Đã lưu — có hiệu lực khi người chơi vào lại (rejoin), không áp dụng ngay để tránh reload server hoặc trùng tên không phân biệt hoa/thường."}
     return {"success": False, "error": "hành động không hợp lệ"}
+
+
+def set_chat_bridge(direction: str, enabled: bool) -> dict:
+    """Flips DiscordSRV's chat relay direction flag(s) directly in its
+    config.yml, then `discordsrv reload` — confirmed live (checked per
+    message, unlike BotToken which is only read at plugin startup)."""
+    keys = CHAT_BRIDGE_KEYS.get(direction)
+    if not keys:
+        return {"success": False, "error": "direction không hợp lệ"}
+    try:
+        with open(DISCORDSRV_CONFIG) as f:
+            lines = f.readlines()
+    except Exception as e:
+        return {"success": False, "error": f"không đọc được config DiscordSRV: {e}"}
+
+    value = "true" if enabled else "false"
+    remaining = set(keys)
+    for i, line in enumerate(lines):
+        for key in list(remaining):
+            if line.startswith(f"{key}:"):
+                lines[i] = f"{key}: {value}\n"
+                remaining.discard(key)
+    if remaining:
+        return {"success": False, "error": f"không tìm thấy key trong config: {', '.join(remaining)}"}
+
+    with open(DISCORDSRV_CONFIG, "w") as f:
+        f.writelines(lines)
+    send_console_command("discordsrv reload")
+    return {"success": True}
 
 
 DANGEROUS_COMMANDS = {"stop", "end", "restart"}
