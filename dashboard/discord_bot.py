@@ -184,12 +184,9 @@ def _format_player_row(p: dict) -> str:
     return f"{name}{gamemode}{op} {time_part}".rstrip()
 
 
-def _format_player_block(players: list) -> str:
-    rows = [_format_player_row(p) for p in players]
-    text = "\n".join(rows)
-    if len(text) > 1000:
-        text = text[:1000].rsplit("\n", 1)[0] + "\n… (còn nữa)"
-    return f"```\n{text}\n```"
+def _format_player_section(title: str, players: list) -> str:
+    rows = "\n".join(_format_player_row(p) for p in players)
+    return f"**{title}**\n```\n{rows}\n```"
 
 
 @bot.tree.command(name="players", description="Danh sách người chơi đã từng vào server")
@@ -207,11 +204,16 @@ async def players_cmd(interaction: discord.Interaction):
     online = sorted((p for p in players if p["online"]), key=lambda p: p["name"].lower())
     offline = sorted((p for p in players if not p["online"]), key=lambda p: p.get("last_seen") or "", reverse=True)
 
-    embed = discord.Embed(title=f"Người chơi ({len(players)})", color=discord.Color.blue())
+    sections = []
     if online:
-        embed.add_field(name=f"🟢 Đang online ({len(online)})", value=_format_player_block(online), inline=False)
+        sections.append(_format_player_section(f"🟢 Đang online ({len(online)})", online))
     if offline:
-        embed.add_field(name=f"⚫ Offline ({len(offline)})", value=_format_player_block(offline), inline=False)
+        sections.append(_format_player_section(f"⚫ Offline ({len(offline)})", offline))
+    text = "\n\n".join(sections)
+    if len(text) > 4000:
+        text = text[:4000].rsplit("\n", 1)[0] + "\n```\n… (còn nữa)"
+
+    embed = discord.Embed(title=f"Người chơi ({len(players)})", description=text, color=discord.Color.blue())
     await interaction.followup.send(embed=embed)
 
 
