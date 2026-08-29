@@ -33,7 +33,10 @@ bộ logic nằm ở `mc_lib.py`; bot chỉ là lớp slash command bên trên.
   lệnh thay đổi (`/gamemode`, `/oplevel`, `/console`, `/update`) chỉ admin
   dùng được — gồm `DISCORD_ADMIN_ID` (owner, cố định qua env) và danh sách
   cấp thêm qua `/grantadmin`/`/revokeadmin` (lưu ở `extra_admins.json`, chỉ
-  owner mới gọi được 2 lệnh này). Cần `discord.py`.
+  owner mới gọi được 2 lệnh này). `/link` cho tự liên kết Discord ↔ tên
+  nhân vật (lưu ở `player_links.json`) — các lệnh nhận `player` (gamemode,
+  oplevel, biomes) có thêm tham số `discord_user` để dùng thay, khỏi gõ tên.
+  Cần `discord.py`.
 - `dashboard/map_snapshot.py` — ghép tile có sẵn của squaremap thành 1 PNG
   cho Discord. Cần `Pillow`.
 - `backup/world_backup.sh` — nén + upload `world/` lên Google Drive.
@@ -119,6 +122,8 @@ hàng ngày, trước backup lúc 05:00.
 - File jar Paper — tải từ PaperMC, không version.
 - `dashboard/extra_admins.json` — danh sách user ID được cấp quyền admin
   qua `/grantadmin`, tạo runtime trên VPS, không version.
+- `dashboard/player_links.json` — map Discord user ID → tên nhân vật,
+  tạo qua `/link`, tạo runtime trên VPS, không version.
 - Secret (bot token, admin user ID, token Cloudflare/Google Drive) — xem
   `secrets.txt` local.
 

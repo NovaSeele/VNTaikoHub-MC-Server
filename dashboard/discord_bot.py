@@ -15,6 +15,7 @@ Config via environment variables (set in the systemd unit, not hardcoded):
 import json
 import os
 import sys
+from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -32,6 +33,7 @@ from mc_lib import (
     get_latest_stable,
     get_player_biomes,
     get_system_stats,
+    known_player_names,
     perform_update,
     query_status,
     run_console_command,
@@ -43,6 +45,7 @@ ADMIN_USER_ID = int(os.environ.get("DISCORD_ADMIN_ID", "0") or "0")
 MAP_URL = "https://vntaikohub-map.novaseele.com/"
 SERVER_ADDRESS = "vntaikohub.novaseele.com"
 EXTRA_ADMINS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "extra_admins.json")
+PLAYER_LINKS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "player_links.json")
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!mc-unused-", intents=intents)
@@ -70,6 +73,57 @@ def is_owner(interaction: discord.Interaction) -> bool:
 
 def is_admin(interaction: discord.Interaction) -> bool:
     return interaction.user.id == ADMIN_USER_ID or interaction.user.id in extra_admins
+
+
+def _load_player_links() -> dict[int, str]:
+    try:
+        with open(PLAYER_LINKS_FILE, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+        return {int(k): v for k, v in raw.items()}
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def _save_player_links() -> None:
+    with open(PLAYER_LINKS_FILE, "w", encoding="utf-8") as f:
+        json.dump({str(k): v for k, v in player_links.items()}, f, ensure_ascii=False, indent=2)
+
+
+player_links: dict[int, str] = _load_player_links()
+
+
+def resolve_player(player: str | None, discord_user: discord.Member | None) -> tuple[str | None, str | None]:
+    """Returns (name, error). discord_user takes priority when both given."""
+    if discord_user is not None:
+        name = player_links.get(discord_user.id)
+        if not name:
+            return None, f"{discord_user.mention} chưa `/link` tài khoản Minecraft."
+        return name, None
+    if player:
+        return player, None
+    return None, "Cần nhập `player` hoặc chọn `discord_user`."
+
+
+def _format_delta(seconds: float) -> str:
+    seconds = max(0, int(seconds))
+    if seconds < 60:
+        return "vài giây"
+    minutes = seconds // 60
+    if minutes < 60:
+        return f"{minutes} phút"
+    hours = minutes // 60
+    minutes %= 60
+    if hours < 24:
+        return f"{hours} giờ {minutes} phút" if minutes else f"{hours} giờ"
+    days = hours // 24
+    hours %= 24
+    return f"{days} ngày {hours} giờ" if hours else f"{days} ngày"
+
+
+def _time_ago(iso_ts: str) -> str:
+    dt = datetime.fromisoformat(iso_ts)
+    seconds = (datetime.now(timezone.utc) - dt.astimezone(timezone.utc)).total_seconds()
+    return _format_delta(seconds)
 
 
 @bot.event
@@ -129,18 +183,41 @@ async def players_cmd(interaction: discord.Interaction):
     if not players:
         await interaction.followup.send("Chưa có người chơi nào.")
         return
-    lines = [
-        f"{'🟢' if p['online'] else '⚫'} **{p['name']}** — {p['gamemode'] or '?'}, OP level {p['op_level']}"
-        for p in players
-    ]
+    lines = []
+    for p in players:
+        time_info = ""
+        if p.get("last_seen"):
+            ago = _time_ago(p["last_seen"])
+            time_info = f", đang online {ago}" if p["online"] else f", lần cuối online {ago} trước"
+        lines.append(f"{'🟢' if p['online'] else '⚫'} **{p['name']}** — {p['gamemode'] or '?'}, OP level {p['op_level']}{time_info}")
     text = "\n".join(lines)
     embed = discord.Embed(title=f"Người chơi ({len(players)})", description=text[:4000], color=discord.Color.blue())
     await interaction.followup.send(embed=embed)
 
 
+@bot.tree.command(name="link", description="Liên kết Discord của bạn với tên nhân vật Minecraft")
+@app_commands.describe(player="Tên nhân vật Minecraft (đúng hoa/thường, phải từng vào server)")
+async def link_cmd(interaction: discord.Interaction, player: str):
+    if player not in known_player_names():
+        await interaction.response.send_message(
+            f"❌ Không tìm thấy `{player}` (chưa từng vào server, hoặc gõ sai hoa/thường?).", ephemeral=True
+        )
+        return
+    player_links[interaction.user.id] = player
+    _save_player_links()
+    await interaction.response.send_message(f"✅ Đã liên kết Discord của bạn với **{player}**.")
+
+
 @bot.tree.command(name="biomes", description="Danh sách biome người chơi đã từng ghé qua")
-@app_commands.describe(player="Tên người chơi (đúng hoa/thường)")
-async def biomes_cmd(interaction: discord.Interaction, player: str):
+@app_commands.describe(
+    player="Tên người chơi (đúng hoa/thường)",
+    discord_user="Hoặc chọn user Discord đã /link (thay vì gõ tên)",
+)
+async def biomes_cmd(interaction: discord.Interaction, player: str = None, discord_user: discord.Member = None):
+    player, err = resolve_player(player, discord_user)
+    if err:
+        await interaction.response.send_message(f"❌ {err}", ephemeral=True)
+        return
     await interaction.response.defer()
     try:
         result = get_player_biomes(player)
@@ -164,16 +241,29 @@ async def biomes_cmd(interaction: discord.Interaction, player: str):
 
 
 @bot.tree.command(name="gamemode", description="Đổi gamemode người chơi")
-@app_commands.describe(player="Tên người chơi (đang online)", mode="Gamemode mới")
+@app_commands.describe(
+    mode="Gamemode mới",
+    player="Tên người chơi (đang online)",
+    discord_user="Hoặc chọn user Discord đã /link (thay vì gõ tên)",
+)
 @app_commands.choices(mode=[
     app_commands.Choice(name="survival", value="survival"),
     app_commands.Choice(name="creative", value="creative"),
     app_commands.Choice(name="adventure", value="adventure"),
     app_commands.Choice(name="spectator", value="spectator"),
 ])
-async def gamemode_cmd(interaction: discord.Interaction, player: str, mode: app_commands.Choice[str]):
+async def gamemode_cmd(
+    interaction: discord.Interaction,
+    mode: app_commands.Choice[str],
+    player: str = None,
+    discord_user: discord.Member = None,
+):
     if not is_admin(interaction):
         await interaction.response.send_message("❌ Bạn không có quyền dùng lệnh này.", ephemeral=True)
+        return
+    player, err = resolve_player(player, discord_user)
+    if err:
+        await interaction.response.send_message(f"❌ {err}", ephemeral=True)
         return
     try:
         result = apply_player_action(player, "gamemode", mode.value)
@@ -187,10 +277,23 @@ async def gamemode_cmd(interaction: discord.Interaction, player: str, mode: app_
 
 
 @bot.tree.command(name="oplevel", description="Đổi OP level người chơi")
-@app_commands.describe(player="Tên người chơi (đúng hoa/thường)", level="OP level (0 = xoá OP, 1-4)")
-async def oplevel_cmd(interaction: discord.Interaction, player: str, level: app_commands.Range[int, 0, 4]):
+@app_commands.describe(
+    level="OP level (0 = xoá OP, 1-4)",
+    player="Tên người chơi (đúng hoa/thường)",
+    discord_user="Hoặc chọn user Discord đã /link (thay vì gõ tên)",
+)
+async def oplevel_cmd(
+    interaction: discord.Interaction,
+    level: app_commands.Range[int, 0, 4],
+    player: str = None,
+    discord_user: discord.Member = None,
+):
     if not is_admin(interaction):
         await interaction.response.send_message("❌ Bạn không có quyền dùng lệnh này.", ephemeral=True)
+        return
+    player, err = resolve_player(player, discord_user)
+    if err:
+        await interaction.response.send_message(f"❌ {err}", ephemeral=True)
         return
     try:
         result = apply_player_action(player, "op_level", str(level))

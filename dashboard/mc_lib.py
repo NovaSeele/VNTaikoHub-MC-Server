@@ -5,6 +5,7 @@ Extracted from what used to be the web dashboard (app.py) after the web UI
 was retired in favor of the Discord bot. This module has no server/UI of
 its own — it's imported by discord_bot.py for all the actual work (status
 queries, player management, console access, version updates)."""
+import calendar
 import glob
 import gzip
 import hashlib
@@ -18,6 +19,7 @@ import subprocess
 import time
 import urllib.request
 import uuid as uuid_module
+from datetime import datetime
 
 MC_HOST = "127.0.0.1"
 MC_PORT = 8443
@@ -243,6 +245,33 @@ def update_ops_json(name: str, level: int | None):
         json.dump(ops, f, indent=2)
 
 
+def _last_seen_from_expiry(expires_on: str | None) -> str | None:
+    """usercache.json's expiresOn is refreshed to "now + 1 month" every time
+    a player connects (Mojang profile cache behavior) — subtracting a month
+    back out gives their last-join timestamp for free, no extra state file
+    or log parsing needed."""
+    if not expires_on:
+        return None
+    try:
+        dt = datetime.strptime(expires_on, "%Y-%m-%d %H:%M:%S %z")
+    except ValueError:
+        return None
+    year, month = dt.year, dt.month - 1
+    if month == 0:
+        month, year = 12, year - 1
+    day = min(dt.day, calendar.monthrange(year, month)[1])
+    return dt.replace(year=year, month=month, day=day).isoformat()
+
+
+def known_player_names() -> set:
+    try:
+        with open(f"{MC_DIR}/usercache.json") as f:
+            cache = json.load(f)
+    except Exception:
+        return set()
+    return {e["name"] for e in cache if e.get("name")}
+
+
 def get_all_players() -> list:
     try:
         with open(f"{MC_DIR}/usercache.json") as f:
@@ -284,6 +313,7 @@ def get_all_players() -> list:
             "op_level": ops.get(name, 0),
             "ip": ips.get(name),
             "online": name in online_names,
+            "last_seen": _last_seen_from_expiry(entry.get("expiresOn")),
         })
     result.sort(key=lambda p: p["name"].lower())
     return result
