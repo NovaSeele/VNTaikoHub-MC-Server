@@ -36,7 +36,8 @@ bộ logic nằm ở `mc_lib.py`; bot chỉ là lớp slash command bên trên.
   owner mới gọi được 2 lệnh này). `/link` cho tự liên kết Discord ↔ tên
   nhân vật (lưu ở `player_links.json`) — các lệnh nhận `player` (gamemode,
   oplevel, biomes) có thêm tham số `discord_user` để dùng thay, khỏi gõ tên.
-  Cần `discord.py`.
+  `/discordname` (tự phục vụ, cần `/link` trước) bật/tắt hiện tên Discord
+  của mình trong game qua plugin SimpleNicks. Cần `discord.py`.
 - `dashboard/map_snapshot.py` — ghép tile có sẵn của squaremap thành 1 PNG
   cho Discord. Cần `Pillow`.
 - `backup/world_backup.sh` — nén + upload `world/` lên Google Drive.
@@ -121,6 +122,24 @@ bộ logic nằm ở `mc_lib.py`; bot chỉ là lớp slash command bên trên.
 - `/chatbridge` trên Discord (admin) — bật/tắt từng chiều
   (`DiscordChatChannelMinecraftToDiscord` / `DiscordChatChannelDiscordToMinecraft`
   trong config.yml) hoặc cả 2, tự chạy `discordsrv reload` sau khi sửa.
+
+## Hiện tên Discord trong game (SimpleNicks)
+
+- Plugin từ https://modrinth.com/plugin/simplenicks, bỏ vào `plugins/`.
+- `plugins/SimpleNicks/config.yml` — mặc định chỉ cho phép nickname gồm
+  chữ/số/gạch dưới (`nickname-regex: '[A-Za-z0-9_]+'`), không đủ cho tên
+  Discord thật (dấu cách, tiếng Nhật, tiếng Việt có dấu...). Đã nới thành
+  `'.+'`, `max-nickname-length: 32` (khớp giới hạn tên Discord), và bật
+  `tablist-nick: true` để đổi luôn cả tab list, không chỉ tên trên đầu.
+  Đổi 3 key này chỉ cần `nick reload` qua console, không cần restart.
+- `set_ingame_nickname()` trong `mc_lib.py` chạy `nick admin set/reset` qua
+  console (console luôn bypass `require-permission` của plugin, không cần
+  permission plugin). Tự thay `<`/`>` trong tên Discord bằng `‹`/`›` trước
+  khi gửi — nickname được plugin parse bằng MiniMessage, ký tự thật từ tên
+  Discord có thể vô tình bị hiểu thành tag định dạng nếu không escape.
+- `/discordname` trên Discord chỉ đổi tên của chính người gọi lệnh (tra qua
+  `player_links.json`), không có tham số target — không có rủi ro chỉnh
+  tên người khác.
 
 ## WorldEdit
 

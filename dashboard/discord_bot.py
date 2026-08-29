@@ -38,6 +38,7 @@ from mc_lib import (
     query_status,
     run_console_command,
     set_chat_bridge,
+    set_ingame_nickname,
 )
 from map_snapshot import WORLDS, best_detail_snapshot, build_snapshot
 
@@ -228,6 +229,23 @@ async def link_cmd(interaction: discord.Interaction, player: str):
     player_links[interaction.user.id] = player
     _save_player_links()
     await interaction.response.send_message(f"✅ Đã liên kết Discord của bạn với **{player}**.")
+
+
+@bot.tree.command(name="discordname", description="Bật/tắt hiện tên Discord của bạn trong game (chat, đầu nhân vật, tab list)")
+@app_commands.describe(enabled="Bật hay tắt")
+async def discordname_cmd(interaction: discord.Interaction, enabled: bool):
+    name = player_links.get(interaction.user.id)
+    if not name:
+        await interaction.response.send_message("❌ Bạn chưa `/link` tài khoản Minecraft.", ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    try:
+        set_ingame_nickname(name, interaction.user.display_name if enabled else None)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Lỗi: {e}")
+        return
+    state = "Bật" if enabled else "Tắt"
+    await interaction.followup.send(f"✅ {state} hiện tên Discord trong game cho **{name}**.")
 
 
 @bot.tree.command(name="biomes", description="Danh sách biome người chơi đã từng ghé qua")

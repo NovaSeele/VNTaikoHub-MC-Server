@@ -407,6 +407,18 @@ def is_player_online(name: str) -> bool:
         return False
 
 
+def set_ingame_nickname(name: str, nickname: str | None) -> None:
+    """Uses SimpleNicks (console-only, no permission plugin needed — console
+    bypasses its require-permission checks). Strips MiniMessage tag
+    delimiters from the input since it comes straight from a Discord
+    display name the plugin will otherwise try to parse as formatting."""
+    if nickname:
+        safe = nickname.replace("<", "‹").replace(">", "›")[:32]
+        send_console_command(f"nick admin set {name} {safe}")
+    else:
+        send_console_command(f"nick admin reset {name}")
+
+
 def apply_player_action(name: str, action: str, value: str) -> dict:
     if action == "gamemode":
         if value not in ("survival", "creative", "adventure", "spectator"):
