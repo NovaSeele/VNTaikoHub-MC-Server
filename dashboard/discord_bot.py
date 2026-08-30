@@ -162,6 +162,63 @@ async def help_cmd(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 
+@bot.tree.command(name="opinfo", description="Xem OP level nào dùng được lệnh gì")
+async def opinfo_cmd(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="OP level dùng được gì (trên server này)",
+        color=discord.Color.gold(),
+    )
+    embed.add_field(
+        name="Level 0 — Người chơi thường",
+        value="Không có quyền cheat.",
+        inline=False,
+    )
+    embed.add_field(
+        name="Level 1 — Moderator",
+        value="Như level 0, cộng thêm bỏ qua spawn protection (đào/đặt block gần điểm spawn).",
+        inline=False,
+    )
+    embed.add_field(
+        name="Level 2 — GameMaster",
+        value=(
+            "Hầu hết lệnh cheat: `/gamemode`, `/give`, `/tp`, `/effect`, `/gamerule`, "
+            "`/weather`, `/clear`, `/summon`, `/setblock`, `/fill`, `/kill`, `/locate`, "
+            "`/enchant`, `/xp`... và WorldEdit (`//`) — server này không có plugin phân "
+            "quyền riêng nên WorldEdit chỉ cần OP, không phân biệt level."
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="Level 3 — Admin",
+        value=(
+            "Như level 2, cộng thêm `/ban`, `/kick`, `/whitelist`, `/banlist`, `/pardon`, "
+            "`/save-all`, `/save-off`/`/save-on`, `/setidletimeout`.\n"
+            "Riêng server này: **command block và `/function` cũng cần level 3** "
+            "(`function-permission-level=3` trong `server.properties`, mặc định vanilla "
+            "chỉ cần level 2)."
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="Level 4 — Owner",
+        value=(
+            "Như level 3, cộng thêm `/stop`, `/op`, `/deop`.\n"
+            "**Chỉ `NovaSeele`/`novaseele` mới được cấp level 4** — `/oplevel` không cho "
+            "chọn level 4, và nếu ai set thẳng qua code cũng bị tự hạ về 3."
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="Lưu ý",
+        value=(
+            "OP level đổi qua `/oplevel` trên Discord chỉ có hiệu lực sau khi người chơi "
+            "**rejoin** — không áp dụng ngay cho phiên đang chơi."
+        ),
+        inline=False,
+    )
+    await interaction.response.send_message(embed=embed)
+
+
 @bot.tree.command(name="status", description="Xem trạng thái server Minecraft")
 async def status_cmd(interaction: discord.Interaction):
     await interaction.response.defer()
