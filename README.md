@@ -106,27 +106,29 @@ bộ logic nằm ở `mc_lib.py`; bot chỉ là lớp slash command bên trên.
 ## Chat 2 chiều (DiscordSRV)
 
 - Plugin từ https://modrinth.com/plugin/discordsrv, bỏ vào `plugins/`.
-- Dùng **chung bot token** với `discord_bot.py` (`DISCORD_BOT_TOKEN` trong
-  `secrets.txt`) — 2 process (Python + JDA trong DiscordSRV) cùng mở gateway
-  trên 1 token. Không chính thức được Discord hỗ trợ (rủi ro session bị
-  invalidate ngẫu nhiên), nhưng chấp nhận đánh đổi để khỏi tạo bot riêng.
-  Nếu bot chính hay bị rớt kết nối bất thường, nghi ngờ đầu tiên là đây.
-- Cần bật 2 privileged intent cho app bot trên Discord Developer Portal →
+- Dùng **bot Discord riêng** (`VnTaikoHub-MC-Chat&Log`, application/token
+  khác hoàn toàn với `discord_bot.py`) — cố ý tách ra sau khi share chung 1
+  token với bot lệnh chính từng dùng tạm thời, để tránh 2 process (Python +
+  JDA) cùng giành session trên 1 token. Token lưu trong `secrets.txt`, key
+  riêng (không phải `DISCORD_BOT_TOKEN`).
+- Cần bật 2 privileged intent cho app bot này trên Discord Developer Portal →
   Bot → Privileged Gateway Intents: **Server Members Intent** và
   **Message Content Intent**. Thiếu 1 trong 2 là JDA login xong nhưng bị
   disconnect ngay ("missing intents").
 - `plugins/DiscordSRV/config.yml`: set `BotToken`, `Channels: {"global":
-  "<channel_id>"}`. Đổi `BotToken` bắt buộc **restart** (chỉ đọc lúc init);
-  đổi hầu hết config khác (kể cả 2 flag chat 2 chiều bên dưới) chỉ cần lệnh
-  console `discordsrv reload`, không cần restart.
-- `/chatbridge` trên Discord (admin) — bật/tắt từng chiều
-  (`DiscordChatChannelMinecraftToDiscord` / `DiscordChatChannelDiscordToMinecraft`
-  trong config.yml) hoặc cả 2, tự chạy `discordsrv reload` sau khi sửa.
-- `DiscordGameStatus: []` — **đã tắt cố ý**. `discord_bot.py` tự set rich
-  presence ("Playing Minecraft" kèm đồng hồ đếm giờ từ lúc bot khởi động,
-  qua `discord.Activity(timestamps={"start": ...})` trong `on_ready()`).
-  Nếu bật lại `DiscordGameStatus` bên DiscordSRV, 2 process sẽ giành nhau
-  set presence trên cùng 1 token — status sẽ nhấp nháy đổi qua lại.
+  "<channel_id>"}`. Đổi `BotToken` bắt buộc **restart** (chỉ đọc lúc init).
+  Đổi `DiscordChatChannelMinecraftToDiscord` (Minecraft → Discord) áp dụng
+  live được qua `discordsrv reload`, đã test xác nhận. Riêng
+  `DiscordChatChannelDiscordToMinecraft` (Discord → Minecraft) **không tin
+  được `reload`** — thực tế test thấy vẫn relay dù đã tắt + reload, phải
+  **restart** mới chắc chắn áp dụng đúng.
+- `/chatbridge` trên Discord (admin) — bật/tắt từng chiều hoặc cả 2 qua
+  `discordsrv reload`; nếu tắt chiều Discord → Minecraft mà vẫn thấy relay,
+  cần restart server thêm (xem ghi chú trên).
+- `DiscordGameStatus: []` — tắt để tránh giẫm lên rich presence riêng của
+  bot lệnh chính (`discord_bot.py`, xem `on_ready()`) — không còn bắt buộc
+  từ khi tách token, nhưng giữ tắt cho gọn vì bot chat này không cần hiện
+  status "Playing".
 
 ## Hiện tên Discord trong game (SimpleNicks)
 
