@@ -122,6 +122,11 @@ bộ logic nằm ở `mc_lib.py`; bot chỉ là lớp slash command bên trên.
 - `/chatbridge` trên Discord (admin) — bật/tắt từng chiều
   (`DiscordChatChannelMinecraftToDiscord` / `DiscordChatChannelDiscordToMinecraft`
   trong config.yml) hoặc cả 2, tự chạy `discordsrv reload` sau khi sửa.
+- `DiscordGameStatus: []` — **đã tắt cố ý**. `discord_bot.py` tự set rich
+  presence ("Playing Minecraft" kèm đồng hồ đếm giờ từ lúc bot khởi động,
+  qua `discord.Activity(timestamps={"start": ...})` trong `on_ready()`).
+  Nếu bật lại `DiscordGameStatus` bên DiscordSRV, 2 process sẽ giành nhau
+  set presence trên cùng 1 token — status sẽ nhấp nháy đổi qua lại.
 
 ## Hiện tên Discord trong game (SimpleNicks)
 

@@ -15,6 +15,7 @@ Config via environment variables (set in the systemd unit, not hardcoded):
 import json
 import os
 import sys
+import time
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -128,8 +129,20 @@ def _time_ago(iso_ts: str) -> str:
     return _format_delta(seconds)
 
 
+START_TIME_MS = int(time.time() * 1000)
+
+
 @bot.event
 async def on_ready():
+    # Rich presence with an elapsed timer, like a real game client shows.
+    # DiscordSRV's own DiscordGameStatus config must stay off — both it and
+    # this process share one bot token, and it'd overwrite this every
+    # StatusUpdateRateInMinutes otherwise.
+    await bot.change_presence(activity=discord.Activity(
+        type=discord.ActivityType.playing,
+        name="Minecraft",
+        timestamps={"start": START_TIME_MS},
+    ))
     await bot.tree.sync()
     print(f"Logged in as {bot.user} (admin id: {ADMIN_USER_ID})")
 
