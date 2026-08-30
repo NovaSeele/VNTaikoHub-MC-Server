@@ -561,9 +561,9 @@ async def revokeadmin_cmd(interaction: discord.Interaction, user: discord.Member
 
 @bot.tree.command(name="admins", description="Xem danh sách ai đang có quyền admin")
 async def admins_cmd(interaction: discord.Interaction):
-    lines = [f"👑 <@{ADMIN_USER_ID}> — owner (cố định)"]
+    lines = [f"👑 <@{ADMIN_USER_ID}>"]
     for uid in sorted(extra_admins):
-        lines.append(f"🛡️ <@{uid}> — được cấp qua /grantadmin")
+        lines.append(f"🛡️ <@{uid}>")
     embed = discord.Embed(title="Danh sách admin", description="\n".join(lines), color=discord.Color.blurple())
     await interaction.response.send_message(embed=embed)
 
