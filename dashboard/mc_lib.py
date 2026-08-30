@@ -419,6 +419,9 @@ def set_ingame_nickname(name: str, nickname: str | None) -> None:
         send_console_command(f"nick admin reset {name}")
 
 
+OWNER_NAMES = {"novaseele"}  # case-insensitive — only these accounts may hold OP level 4
+
+
 def apply_player_action(name: str, action: str, value: str) -> dict:
     if action == "gamemode":
         if value not in ("survival", "creative", "adventure", "spectator"):
@@ -435,6 +438,8 @@ def apply_player_action(name: str, action: str, value: str) -> dict:
         if level <= 0:
             update_ops_json(name, None)
             return {"success": True, "note": "Đã xoá quyền OP — có hiệu lực khi người chơi vào lại (rejoin)."}
+        if level >= 4 and name.lower() not in OWNER_NAMES:
+            return {"success": False, "error": f"Chỉ NovaSeele mới được OP level 4 — {name} tối đa level 3."}
         # Always edit ops.json directly instead of running the game's own
         # /op or /deop command: Minecraft resolves player names
         # case-insensitively against the profile cache, so `/op <name>`

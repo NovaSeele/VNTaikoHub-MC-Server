@@ -174,6 +174,11 @@ hàng ngày, trước backup lúc 05:00.
 - Không dùng `/op`/`/deop` — resolve tên không phân biệt hoa/thường, có thể
   khớp nhầm tài khoản. `apply_player_action()` trong `mc_lib.py` ghi thẳng
   `ops.json` thay vì dùng lệnh này.
+- OP level 4 chỉ dành cho `NovaSeele`/`novaseele` (`OWNER_NAMES` trong
+  `mc_lib.py`, so khớp không phân biệt hoa/thường) — `/oplevel` chặn cứng
+  nếu ai khác cố set level 4, tối đa còn lại là level 3.
+- `function-permission-level=3` trong `server.properties` — command block
+  và `/function` chỉ chạy được với OP level ≥ 3 (mặc định vanilla là 2).
 - Sau VPS crash/reboot bất thường, kiểm tra `server-port` và `online-mode`
   trong `server.properties` — cả 2 từng bị revert về mặc định.
 - Không có UDP/IPv6: không host được Bedrock (Geyser), voice chat plugin,
