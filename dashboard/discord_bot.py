@@ -183,8 +183,7 @@ async def opinfo_cmd(interaction: discord.Interaction):
         value=(
             "Hầu hết lệnh cheat: `/gamemode`, `/give`, `/tp`, `/effect`, `/gamerule`, "
             "`/weather`, `/clear`, `/summon`, `/setblock`, `/fill`, `/kill`, `/locate`, "
-            "`/enchant`, `/xp`... và WorldEdit (`//`) — server này không có plugin phân "
-            "quyền riêng nên WorldEdit chỉ cần OP, không phân biệt level."
+            "`/enchant`, `/xp`... và WorldEdit (`//`)."
         ),
         inline=False,
     )
