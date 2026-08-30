@@ -175,13 +175,13 @@ hàng ngày, trước backup lúc 05:00.
   khớp nhầm tài khoản. `apply_player_action()` trong `mc_lib.py` ghi thẳng
   `ops.json` thay vì dùng lệnh này.
 - OP level 4 chỉ dành cho `NovaSeele`/`novaseele` (`OWNER_NAMES` trong
-  `mc_lib.py`, so khớp không phân biệt hoa/thường) — `/oplevel` set level 4
-  cho người khác sẽ âm thầm hạ xuống 3, không báo lỗi/giải thích (cố ý, coi
-  đây là hành vi mặc định chứ không phải giới hạn cần nêu ra). Tham số
-  `level` dùng autocomplete động (`_oplevel_autocomplete` trong
-  `discord_bot.py`) thay vì `Range` tĩnh — chỉ owner mới thấy gợi ý "4",
-  admin khác chỉ thấy 0-3. Đây là gợi ý UI, không phải chặn cứng; backend
-  (`apply_player_action`) mới là nơi thật sự enforce.
+  `mc_lib.py`, so khớp không phân biệt hoa/thường) — 2 tài khoản này đã cố
+  định level 4 sẵn, không ai cần "set" level 4 qua lệnh cả (kể cả owner).
+  Vì vậy `/oplevel` chỉ có dropdown cố định **0-3** cho tất cả mọi người
+  (`app_commands.choices`, giống `/gamemode`) — level 4 không xuất hiện ở
+  đâu trong UI. `apply_player_action()` trong `mc_lib.py` vẫn giữ chặn ngầm
+  (tự hạ về 3 nếu ai đó gọi thẳng với level ≥4 ngoài 2 tài khoản trên) làm
+  lớp phòng vệ thứ 2, phòng trường hợp có code khác gọi thẳng hàm này.
 - `function-permission-level=3` trong `server.properties` — command block
   và `/function` chỉ chạy được với OP level ≥ 3 (mặc định vanilla là 2).
 - Sau VPS crash/reboot bất thường, kiểm tra `server-port` và `online-mode`
