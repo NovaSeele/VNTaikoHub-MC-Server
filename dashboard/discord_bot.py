@@ -193,9 +193,7 @@ async def opinfo_cmd(interaction: discord.Interaction):
         value=(
             "Như level 2, cộng thêm `/ban`, `/kick`, `/whitelist`, `/banlist`, `/pardon`, "
             "`/save-all`, `/save-off`/`/save-on`, `/setidletimeout`.\n"
-            "Riêng server này: **command block và `/function` cũng cần level 3** "
-            "(`function-permission-level=3` trong `server.properties`, mặc định vanilla "
-            "chỉ cần level 2)."
+            "Riêng server này: **command block cũng cần level 3** mới dùng được."
         ),
         inline=False,
     )
@@ -203,8 +201,7 @@ async def opinfo_cmd(interaction: discord.Interaction):
         name="Level 4 — Owner",
         value=(
             "Như level 3, cộng thêm `/stop`, `/op`, `/deop`.\n"
-            "**Chỉ `NovaSeele`/`novaseele` mới được cấp level 4** — `/oplevel` không cho "
-            "chọn level 4, và nếu ai set thẳng qua code cũng bị tự hạ về 3."
+            "**Chỉ `NovaSeele`/`novaseele` mới được cấp level 4.**"
         ),
         inline=False,
     )
