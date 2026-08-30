@@ -559,6 +559,15 @@ async def revokeadmin_cmd(interaction: discord.Interaction, user: discord.Member
     await interaction.response.send_message(f"✅ Đã thu hồi quyền admin của {user.mention}.")
 
 
+@bot.tree.command(name="admins", description="Xem danh sách ai đang có quyền admin")
+async def admins_cmd(interaction: discord.Interaction):
+    lines = [f"👑 <@{ADMIN_USER_ID}> — owner (cố định)"]
+    for uid in sorted(extra_admins):
+        lines.append(f"🛡️ <@{uid}> — được cấp qua /grantadmin")
+    embed = discord.Embed(title="Danh sách admin", description="\n".join(lines), color=discord.Color.blurple())
+    await interaction.response.send_message(embed=embed)
+
+
 @bot.tree.command(name="map", description="Xem bản đồ Overworld/Nether/The End (ảnh + link xem trực tiếp)")
 @app_commands.describe(world="Chỉ xem 1 map, ảnh chi tiết hơn (bỏ trống = xem cả 3, ảnh tổng quan)")
 @app_commands.choices(world=[
