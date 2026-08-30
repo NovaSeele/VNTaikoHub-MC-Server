@@ -316,15 +316,25 @@ async def gamemode_cmd(
         await interaction.response.send_message(f"❌ {result.get('error')}", ephemeral=True)
 
 
+async def _oplevel_autocomplete(interaction: discord.Interaction, current: str):
+    max_level = 4 if is_owner(interaction) else 3
+    return [
+        app_commands.Choice(name=str(n), value=n)
+        for n in range(max_level + 1)
+        if current in str(n)
+    ]
+
+
 @bot.tree.command(name="oplevel", description="Đổi OP level người chơi")
 @app_commands.describe(
-    level="OP level (0 = xoá OP, 1-4)",
+    level="OP level (0 = xoá OP)",
     player="Tên người chơi (đúng hoa/thường)",
     discord_user="Hoặc chọn user Discord đã /link (thay vì gõ tên)",
 )
+@app_commands.autocomplete(level=_oplevel_autocomplete)
 async def oplevel_cmd(
     interaction: discord.Interaction,
-    level: app_commands.Range[int, 0, 4],
+    level: int,
     player: str = None,
     discord_user: discord.Member = None,
 ):
@@ -341,8 +351,9 @@ async def oplevel_cmd(
         await interaction.response.send_message(f"❌ Lỗi: {e}", ephemeral=True)
         return
     if result["success"]:
+        applied = result.get("level", level)
         note = result.get("note", "")
-        await interaction.response.send_message(f"✅ Đã đặt OP level của **{player}** = {level}. {note}")
+        await interaction.response.send_message(f"✅ Đã đặt OP level của **{player}** = {applied}. {note}")
     else:
         await interaction.response.send_message(f"❌ {result.get('error')}", ephemeral=True)
 

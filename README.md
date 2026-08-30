@@ -177,7 +177,11 @@ hàng ngày, trước backup lúc 05:00.
 - OP level 4 chỉ dành cho `NovaSeele`/`novaseele` (`OWNER_NAMES` trong
   `mc_lib.py`, so khớp không phân biệt hoa/thường) — `/oplevel` set level 4
   cho người khác sẽ âm thầm hạ xuống 3, không báo lỗi/giải thích (cố ý, coi
-  đây là hành vi mặc định chứ không phải giới hạn cần nêu ra).
+  đây là hành vi mặc định chứ không phải giới hạn cần nêu ra). Tham số
+  `level` dùng autocomplete động (`_oplevel_autocomplete` trong
+  `discord_bot.py`) thay vì `Range` tĩnh — chỉ owner mới thấy gợi ý "4",
+  admin khác chỉ thấy 0-3. Đây là gợi ý UI, không phải chặn cứng; backend
+  (`apply_player_action`) mới là nơi thật sự enforce.
 - `function-permission-level=3` trong `server.properties` — command block
   và `/function` chỉ chạy được với OP level ≥ 3 (mặc định vanilla là 2).
 - Sau VPS crash/reboot bất thường, kiểm tra `server-port` và `online-mode`

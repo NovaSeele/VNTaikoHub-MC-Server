@@ -453,7 +453,11 @@ def apply_player_action(name: str, action: str, value: str) -> dict:
         # permission tweak. The edit takes effect the next time the player
         # joins, which Bukkit always reads ops.json fresh for.
         update_ops_json(name, level)
-        return {"success": True, "note": "Đã lưu — có hiệu lực khi người chơi vào lại (rejoin), không áp dụng ngay để tránh reload server hoặc trùng tên không phân biệt hoa/thường."}
+        return {
+            "success": True,
+            "level": level,
+            "note": "Đã lưu — có hiệu lực khi người chơi vào lại (rejoin), không áp dụng ngay để tránh reload server hoặc trùng tên không phân biệt hoa/thường.",
+        }
     return {"success": False, "error": "hành động không hợp lệ"}
 
 
