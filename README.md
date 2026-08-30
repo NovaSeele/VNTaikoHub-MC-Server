@@ -175,8 +175,9 @@ hàng ngày, trước backup lúc 05:00.
   khớp nhầm tài khoản. `apply_player_action()` trong `mc_lib.py` ghi thẳng
   `ops.json` thay vì dùng lệnh này.
 - OP level 4 chỉ dành cho `NovaSeele`/`novaseele` (`OWNER_NAMES` trong
-  `mc_lib.py`, so khớp không phân biệt hoa/thường) — `/oplevel` chặn cứng
-  nếu ai khác cố set level 4, tối đa còn lại là level 3.
+  `mc_lib.py`, so khớp không phân biệt hoa/thường) — `/oplevel` set level 4
+  cho người khác sẽ âm thầm hạ xuống 3, không báo lỗi/giải thích (cố ý, coi
+  đây là hành vi mặc định chứ không phải giới hạn cần nêu ra).
 - `function-permission-level=3` trong `server.properties` — command block
   và `/function` chỉ chạy được với OP level ≥ 3 (mặc định vanilla là 2).
 - Sau VPS crash/reboot bất thường, kiểm tra `server-port` và `online-mode`
