@@ -18,7 +18,7 @@ import subprocess
 import time
 import urllib.request
 import uuid as uuid_module
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 MC_HOST = "127.0.0.1"
 MC_PORT = 8443
@@ -28,6 +28,7 @@ GAMEMODE_NAMES = {0: "survival", 1: "creative", 2: "adventure", 3: "spectator"}
 RUN_SH = f"{MC_DIR}/run.sh"
 FILL_API = "https://fill.papermc.io/v3/projects/paper"
 DISCORDSRV_CONFIG = f"{MC_DIR}/plugins/DiscordSRV/config.yml"
+TZ = timezone(timedelta(hours=7))  # server is VN-hosted, htpdate-synced to this offset throughout
 CHAT_BRIDGE_KEYS = {
     "mc_to_discord": ["DiscordChatChannelMinecraftToDiscord"],
     "discord_to_mc": ["DiscordChatChannelDiscordToMinecraft"],
@@ -251,12 +252,12 @@ def update_ops_json(name: str, level: int | None):
 
 
 def _last_seen_from_expiry(expires_on: str | None) -> str | None:
-    """usercache.json's expiresOn is refreshed to "now + 30 days" every time
-    a player connects (Mojang profile cache behavior — a fixed 30-day
-    duration, NOT a calendar month) — subtracting 30 days back out gives
-    their last-join timestamp for free, no extra state file or log parsing
-    needed. Confirmed against real join logs: a naive calendar-month
-    subtraction is off by a day whenever the origin month has 31 days."""
+    """Fallback only — usercache.json's expiresOn comes from Mojang doing
+    expiry.plusMonths(1) with day-of-month clamping, which is provably
+    ambiguous to reverse: Aug 30 and Aug 31 both forward-map to Sep 30
+    (September has no 31st), so a "-30 days" or "-1 month" guess is off by
+    a day for roughly half of all cases. Used only when a player has no
+    join/leave line in the scanned logs (see _scan_last_events)."""
     if not expires_on:
         return None
     try:
@@ -264,6 +265,106 @@ def _last_seen_from_expiry(expires_on: str | None) -> str | None:
     except ValueError:
         return None
     return (dt - timedelta(days=30)).isoformat()
+
+
+_TIME_RE = re.compile(r"^\[(\d\d):(\d\d):(\d\d)\]")
+_JOIN_RE = re.compile(r"^\[\d\d:\d\d:\d\d\] \[Server thread/INFO\]: ([A-Za-z0-9_]+) joined the game$")
+_LEAVE_RE = re.compile(r"^\[\d\d:\d\d:\d\d\] \[Server thread/INFO\]: ([A-Za-z0-9_]+) left the game$")
+_ROTATED_LOG_RE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})-\d+\.log\.gz$")
+_MAX_ROTATED_LOGS_SCANNED = 60  # ~ a few weeks' worth; older players fall back to the expiresOn guess
+
+
+def _split_latest_log_by_day(lines: list, today) -> list:
+    """latest.log carries no date, only time-of-day, and keeps accumulating
+    across a midnight rollover if the server hasn't restarted — split it
+    into per-day chunks by watching the clock go backwards between lines,
+    then anchor the last chunk to today and count backwards."""
+    segments = []
+    cur: list = []
+    prev_hms = None
+    for line in lines:
+        m = _TIME_RE.match(line)
+        if m:
+            hms = tuple(int(g) for g in m.groups())
+            if prev_hms is not None and hms < prev_hms:
+                segments.append(cur)
+                cur = []
+            prev_hms = hms
+        cur.append(line)
+    segments.append(cur)
+
+    dated = []
+    day = today
+    for seg in reversed(segments):
+        dated.append((day, seg))
+        day = day - timedelta(days=1)
+    dated.reverse()
+    return dated
+
+
+def _scan_last_events(want_join: set, want_leave: set) -> dict:
+    """Authoritative alternative to _last_seen_from_expiry: reads each
+    player's actual last "joined"/"left" line straight from the logs
+    (newest first, latest.log then rotated .log.gz files) instead of
+    reverse-engineering a value that's mathematically ambiguous half the
+    time. want_join names get their last join time (for online players —
+    "online since"); want_leave names get their last leave time."""
+    remaining_join = set(want_join)
+    remaining_leave = set(want_leave)
+    result: dict = {}
+
+    def _scan_lines(lines, year, month, day):
+        for line in reversed(lines):
+            if remaining_join:
+                m = _JOIN_RE.match(line)
+                if m:
+                    name = m.group(1)
+                    if name in remaining_join:
+                        h, mi, s = (int(x) for x in _TIME_RE.match(line).groups())
+                        result[name] = datetime(year, month, day, h, mi, s, tzinfo=TZ).isoformat()
+                        remaining_join.discard(name)
+                    continue
+            if remaining_leave:
+                m = _LEAVE_RE.match(line)
+                if m:
+                    name = m.group(1)
+                    if name in remaining_leave:
+                        h, mi, s = (int(x) for x in _TIME_RE.match(line).groups())
+                        result[name] = datetime(year, month, day, h, mi, s, tzinfo=TZ).isoformat()
+                        remaining_leave.discard(name)
+
+    try:
+        with open(LOG_PATH, "r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()
+    except FileNotFoundError:
+        lines = []
+    today = datetime.now(TZ).date()
+    for day, seg_lines in reversed(_split_latest_log_by_day(lines, today)):
+        if not remaining_join and not remaining_leave:
+            return result
+        _scan_lines(seg_lines, day.year, day.month, day.day)
+
+    if not remaining_join and not remaining_leave:
+        return result
+
+    rotated = []
+    for path in glob.glob(f"{MC_DIR}/logs/*.log.gz"):
+        m = _ROTATED_LOG_RE.match(os.path.basename(path))
+        if m:
+            rotated.append((path, tuple(int(g) for g in m.groups())))
+    rotated.sort(key=lambda x: x[1], reverse=True)
+
+    for path, (year, month, day) in rotated[:_MAX_ROTATED_LOGS_SCANNED]:
+        if not remaining_join and not remaining_leave:
+            break
+        try:
+            with gzip.open(path, "rt", encoding="utf-8", errors="replace") as f:
+                lines = f.readlines()
+        except OSError:
+            continue
+        _scan_lines(lines, year, month, day)
+
+    return result
 
 
 def known_player_names() -> set:
@@ -289,6 +390,12 @@ def get_all_players() -> list:
         online_names = set(status.get("players_sample") or [])
     except Exception:
         pass
+
+    all_names = {e["name"] for e in cache if e.get("name")}
+    last_events = _scan_last_events(
+        want_join=online_names & all_names,
+        want_leave=all_names - online_names,
+    )
 
     result = []
     for entry in cache:
@@ -316,7 +423,7 @@ def get_all_players() -> list:
             "op_level": ops.get(name, 0),
             "ip": ips.get(name),
             "online": name in online_names,
-            "last_seen": _last_seen_from_expiry(entry.get("expiresOn")),
+            "last_seen": last_events.get(name) or _last_seen_from_expiry(entry.get("expiresOn")),
         })
     result.sort(key=lambda p: p["name"].lower())
     return result
