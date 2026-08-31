@@ -27,6 +27,13 @@ bộ logic nằm ở `mc_lib.py`; bot chỉ là lớp slash command bên trên.
 - `dashboard/mc_lib.py` — logic lõi (stdlib only): truy vấn trạng thái, đọc
   ghi `ops.json`, quản lý người chơi, console, đọc NBT, kiểm tra/cập nhật
   phiên bản Paper. Thư viện thuần, không có entrypoint.
+  `last_seen` của `/players` đọc thẳng dòng "joined"/"left the game" gần
+  nhất từ `logs/latest.log` + tối đa 60 file `.log.gz` cũ hơn
+  (`_scan_last_events`) — **không** dùng `expiresOn` trong `usercache.json`
+  làm nguồn chính, vì Mojang tính giá trị đó bằng `+1 tháng lịch` có clamp
+  ngày, khiến việc suy ngược ra ngày gốc bị mơ hồ (vd 30/8 và 31/8 cùng ra
+  1 kết quả khi tháng sau chỉ có 30 ngày) — `_last_seen_from_expiry` chỉ
+  còn là fallback cho người chơi quá cũ, ngoài phạm vi 60 file quét.
 - `dashboard/relay.py` — relay PROXY-protocol giữa nginx và Paper.
 - `dashboard/discord_bot.py` — slash command, import trực tiếp `mc_lib.py`.
   Lệnh xem (`/status`, `/players`, `/version`, `/map`, `/biomes`) public;
