@@ -5,7 +5,6 @@ Extracted from what used to be the web dashboard (app.py) after the web UI
 was retired in favor of the Discord bot. This module has no server/UI of
 its own — it's imported by discord_bot.py for all the actual work (status
 queries, player management, console access, version updates)."""
-import calendar
 import glob
 import gzip
 import hashlib
@@ -19,7 +18,7 @@ import subprocess
 import time
 import urllib.request
 import uuid as uuid_module
-from datetime import datetime
+from datetime import datetime, timedelta
 
 MC_HOST = "127.0.0.1"
 MC_PORT = 8443
@@ -252,21 +251,19 @@ def update_ops_json(name: str, level: int | None):
 
 
 def _last_seen_from_expiry(expires_on: str | None) -> str | None:
-    """usercache.json's expiresOn is refreshed to "now + 1 month" every time
-    a player connects (Mojang profile cache behavior) — subtracting a month
-    back out gives their last-join timestamp for free, no extra state file
-    or log parsing needed."""
+    """usercache.json's expiresOn is refreshed to "now + 30 days" every time
+    a player connects (Mojang profile cache behavior — a fixed 30-day
+    duration, NOT a calendar month) — subtracting 30 days back out gives
+    their last-join timestamp for free, no extra state file or log parsing
+    needed. Confirmed against real join logs: a naive calendar-month
+    subtraction is off by a day whenever the origin month has 31 days."""
     if not expires_on:
         return None
     try:
         dt = datetime.strptime(expires_on, "%Y-%m-%d %H:%M:%S %z")
     except ValueError:
         return None
-    year, month = dt.year, dt.month - 1
-    if month == 0:
-        month, year = 12, year - 1
-    day = min(dt.day, calendar.monthrange(year, month)[1])
-    return dt.replace(year=year, month=month, day=day).isoformat()
+    return (dt - timedelta(days=30)).isoformat()
 
 
 def known_player_names() -> set:
