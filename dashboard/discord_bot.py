@@ -46,6 +46,7 @@ from map_snapshot import WORLDS, best_detail_snapshot, build_snapshot
 BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "")
 ADMIN_USER_ID = int(os.environ.get("DISCORD_ADMIN_ID", "0") or "0")
 MAP_URL = "https://vntaikohub-map.novaseele.com/"
+MAP3D_URL = "https://vntaikohub-3dmap.novaseele.com/"
 SERVER_ADDRESS = "vntaikohub.novaseele.com"
 EXTRA_ADMINS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "extra_admins.json")
 PLAYER_LINKS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "player_links.json")
@@ -583,7 +584,7 @@ async def map_cmd(interaction: discord.Interaction, world: app_commands.Choice[s
             await interaction.followup.send(f"❌ Không ghép được ảnh {world.name}: {e}")
             return
         await interaction.followup.send(
-            content=f"🗺️ {world.name} (zoom {zoom}) — Live Map: {MAP_URL}",
+            content=f"🗺️ {world.name} (zoom {zoom}) — Live Map: {MAP_URL}\n🧊 Bản đồ 3D: {MAP3D_URL}",
             file=discord.File(img_path, filename=f"{world.value}.png"),
         )
         return
@@ -600,6 +601,7 @@ async def map_cmd(interaction: discord.Interaction, world: app_commands.Choice[s
 
     content = (
         f"🗺️ Live Map: {MAP_URL}\n"
+        f"🧊 Bản đồ 3D: {MAP3D_URL}\n"
         f"-# Nếu mở web thấy thiếu/cũ, thử tab ẩn danh — trình duyệt hay giữ cache ảnh bản đồ cũ dù đã bấm Ctrl+F5."
     )
     if missing:
