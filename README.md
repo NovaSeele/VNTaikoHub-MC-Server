@@ -110,6 +110,30 @@ bộ logic nằm ở `mc_lib.py`; bot chỉ là lớp slash command bên trên.
 - `/map` trên Discord gửi kèm ảnh preview + link. `map_snapshot.py` ghép
   tile zoom-0 có sẵn của squaremap — không render lại, <1s.
 
+## Bản đồ 3D (BlueMap)
+
+- Tải từ https://modrinth.com/plugin/bluemap (chọn đúng bản Paper khớp MC
+  đang chạy), bỏ vào `plugins/`, restart `minecraft.service`.
+- `plugins/BlueMap/core.conf` — `accept-download: true` bắt buộc phải tự
+  bật tay (đồng ý EULA Mojang để BlueMap tải file client làm nguồn texture)
+  — plugin sẽ đứng yên báo thiếu resource nếu chưa bật. Bật xong chạy
+  `/bluemap reload`, không cần restart lại.
+- Bind `0.0.0.0:8100` (bản 5.23 không có setting đổi bind IP như squaremap)
+  — không sao vì `ufw` mặc định DROP, chỉ mở 22/80/443, nên port 8100
+  không lộ ra ngoài dù bind toàn interface. Không cần thêm rule firewall.
+- `nginx/vntaikohub-3dmap.conf` proxy `127.0.0.1:8100` ra
+  `https://vntaikohub-3dmap.novaseele.com` (DNS A record, proxied qua
+  Cloudflare, tạo qua Cloudflare API — xem `secrets.txt`). Có thêm
+  `proxy_http_version 1.1` + `Connection ""` vì BlueMap dùng
+  Server-Sent Events (SSE) để đẩy update tile/marker live, cần giữ
+  connection không bị nginx cắt theo kiểu HTTP/1.0 mặc định.
+- `/bluemap status` trong console xem tiến trình render + số thread đang
+  chạy. Mặc định 1 thread — render lần đầu toàn world mất nhiều giờ (chạy
+  nền, tiếp tục xuyên qua restart, không cần theo dõi).
+- Hiện marker vị trí người chơi live trên map (`live-player-markers: true`
+  trong `plugin.conf`) — không phải camera bám theo góc nhìn 1 người, chỉ
+  là chấm vị trí trên bản đồ 3D tự do di chuyển.
+
 ## Chat 2 chiều (DiscordSRV)
 
 - Plugin từ https://modrinth.com/plugin/discordsrv, bỏ vào `plugins/`.
